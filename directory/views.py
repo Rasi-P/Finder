@@ -1,13 +1,14 @@
 from django.db.models import Avg, Count, Q
 from rest_framework import status
-from rest_framework.generics import CreateAPIView, ListAPIView
+from rest_framework.generics import CreateAPIView, ListAPIView, RetrieveAPIView
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .models import Category, Location, Worker, WorkerSubmission
+from .models import Category, Location, Rating, Worker, WorkerSubmission
 from .serializers import (
     CategorySerializer,
     LocationSerializer,
+    RatingSerializer,
     WorkerSerializer,
     WorkerSubmissionSerializer,
 )
@@ -27,6 +28,7 @@ def parse_bool(value):
 
 class CategoryListAPIView(ListAPIView):
     serializer_class = CategorySerializer
+    pagination_class = None
 
     def get_queryset(self):
         return Category.objects.annotate(worker_count=Count("workers", distinct=True))
@@ -114,7 +116,32 @@ class WorkerListAPIView(ListAPIView):
         if available is not None:
             queryset = queryset.filter(availability_status=available)
 
-        return queryset.distinct()
+        return queryset.distinct().order_by("-is_verified", "-availability_status", "name")
+
+
+class WorkerDetailAPIView(RetrieveAPIView):
+    serializer_class = WorkerSerializer
+
+    def get_queryset(self):
+        return (
+            Worker.objects.select_related("category", "location")
+            .annotate(average_rating=Avg("ratings__rating"))
+        )
+
+
+class RatingCreateAPIView(APIView):
+    def post(self, request, pk):
+        worker = Worker.objects.filter(pk=pk).first()
+        if not worker:
+            return Response({"detail": "Worker not found."}, status=status.HTTP_404_NOT_FOUND)
+        serializer = RatingSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save(worker=worker)
+        avg = worker.ratings.aggregate(avg=Avg("rating"))["avg"]
+        return Response(
+            {"average_rating": round(avg, 1) if avg else None, **serializer.data},
+            status=status.HTTP_201_CREATED,
+        )
 
 
 class WorkerSubmissionCreateAPIView(CreateAPIView):

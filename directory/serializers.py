@@ -1,7 +1,7 @@
 from django.db.models import Avg
 from rest_framework import serializers
 
-from .models import Category, Location, Worker, WorkerSubmission, normalize_phone_number
+from .models import Category, Location, Rating, Worker, WorkerSubmission, normalize_phone_number
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -68,6 +68,13 @@ class WorkerSerializer(serializers.ModelSerializer):
         if average is None:
             average = obj.ratings.aggregate(avg=Avg("rating"))["avg"]
         return round(average, 1) if average is not None else None
+
+
+class RatingSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Rating
+        fields = ("id", "rating", "created_at")
+        read_only_fields = ("id", "created_at")
 
 
 class WorkerSubmissionSerializer(serializers.ModelSerializer):

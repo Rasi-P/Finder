@@ -1,4 +1,5 @@
 import { startTransition, useDeferredValue, useEffect, useState } from "react";
+import { Link, Route, Routes, useNavigate, useParams } from "react-router-dom";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://127.0.0.1:8000/api";
 
@@ -51,6 +52,14 @@ const text = {
   call: "Call",
   whatsapp: "WhatsApp",
   newBadge: "New",
+  viewProfile: "View profile",
+  backToSearch: "← Back to search",
+  rateWorker: "Rate this worker",
+  submitRating: "Submit rating",
+  ratingSuccess: "Thanks for your rating!",
+  ratingError: "Could not submit rating.",
+  serviceDescription: "Service description",
+  noDescription: "No description provided.",
 };
 
 const emptySubmission = {
@@ -77,18 +86,10 @@ function buildQuery(params = {}) {
 }
 
 function findError(payload) {
-  if (!payload) {
-    return "";
-  }
-  if (typeof payload === "string") {
-    return payload;
-  }
-  if (Array.isArray(payload)) {
-    return payload.map(findError).find(Boolean) ?? "";
-  }
-  if (typeof payload === "object") {
-    return Object.values(payload).map(findError).find(Boolean) ?? "";
-  }
+  if (!payload) return "";
+  if (typeof payload === "string") return payload;
+  if (Array.isArray(payload)) return payload.map(findError).find(Boolean) ?? "";
+  if (typeof payload === "object") return Object.values(payload).map(findError).find(Boolean) ?? "";
   return "";
 }
 
@@ -122,11 +123,13 @@ function App() {
     locations: [],
   });
   const [workers, setWorkers] = useState([]);
+  const [pagination, setPagination] = useState({ count: 0, next: null, previous: null, page: 1 });
   const [filters, setFilters] = useState({ category: "", pincode: "", search: "", verified: false, available: true });
   const [submission, setSubmission] = useState(emptySubmission);
   const [homeState, setHomeState] = useState({ loading: true, error: "" });
   const [workerState, setWorkerState] = useState({ loading: true, error: "" });
   const [submissionState, setSubmissionState] = useState({ loading: false, error: "", success: "" });
+  const [locationSuggestions, setLocationSuggestions] = useState([]);
   const deferredSearch = useDeferredValue(filters.search);
   const deferredPincode = useDeferredValue(filters.pincode);
 
@@ -138,9 +141,7 @@ function App() {
         setHomeState({ loading: false, error: "" });
       })
       .catch((error) => {
-        if (error.name !== "AbortError") {
-          setHomeState({ loading: false, error: text.error });
-        }
+        if (error.name !== "AbortError") setHomeState({ loading: false, error: text.error });
       });
     return () => controller.abort();
   }, []);
@@ -155,24 +156,36 @@ function App() {
         search: deferredSearch,
         verified: filters.verified || "",
         available: filters.available,
+        page: filters.page ?? 1,
       },
       signal: controller.signal,
     })
       .then((data) => {
-        setWorkers(data);
+        setWorkers(data.results ?? data);
+        setPagination({ count: data.count ?? 0, next: data.next, previous: data.previous, page: filters.page ?? 1 });
         setWorkerState({ loading: false, error: "" });
       })
       .catch((error) => {
-        if (error.name !== "AbortError") {
-          setWorkerState({ loading: false, error: text.error });
-        }
+        if (error.name !== "AbortError") setWorkerState({ loading: false, error: text.error });
       });
     return () => controller.abort();
-  }, [deferredPincode, deferredSearch, filters.available, filters.category, filters.verified]);
+  }, [deferredPincode, deferredSearch, filters.available, filters.category, filters.verified, filters.page]);
+
+  useEffect(() => {
+    if (!deferredPincode || deferredPincode.length < 2) {
+      setLocationSuggestions([]);
+      return;
+    }
+    const controller = new AbortController();
+    requestJson("/locations/", { params: { q: deferredPincode }, signal: controller.signal })
+      .then((data) => setLocationSuggestions((data.results ?? data).slice(0, 5)))
+      .catch(() => {});
+    return () => controller.abort();
+  }, [deferredPincode]);
 
   function updateFilter(key, value) {
     startTransition(() => {
-      setFilters((current) => ({ ...current, [key]: value }));
+      setFilters((current) => ({ ...current, [key]: value, ...(key !== "page" ? { page: 1 } : {}) }));
     });
   }
 
@@ -196,6 +209,39 @@ function App() {
   }
 
   return (
+    <Routes>
+      <Route
+        path="/"
+        element={
+          <HomePage
+            homeData={homeData}
+            workers={workers}
+            pagination={pagination}
+            filters={filters}
+            updateFilter={updateFilter}
+            homeState={homeState}
+            workerState={workerState}
+            submission={submission}
+            updateSubmission={updateSubmission}
+            handleSubmit={handleSubmit}
+            submissionState={submissionState}
+            setFilters={setFilters}
+            locationSuggestions={locationSuggestions}
+            setLocationSuggestions={setLocationSuggestions}
+          />
+        }
+      />
+      <Route path="/workers/:id" element={<WorkerDetailPage />} />
+    </Routes>
+  );
+}
+
+function HomePage({
+  homeData, workers, pagination, filters, updateFilter, homeState, workerState,
+  submission, updateSubmission, handleSubmit, submissionState, setFilters,
+  locationSuggestions, setLocationSuggestions,
+}) {
+  return (
     <main className="app-shell">
       <section className="hero-panel">
         <div className="hero-copy">
@@ -205,8 +251,36 @@ function App() {
           <p>{text.subtitle}</p>
         </div>
         <div className="search-card">
-          <label><span>{text.searchLabel}</span><input value={filters.search} onChange={(event) => updateFilter("search", event.target.value)} placeholder="Plumber, cleaner, Niyas..." /></label>
-          <label><span>{text.pincodeLabel}</span><input value={filters.pincode} onChange={(event) => updateFilter("pincode", event.target.value)} placeholder="673633" /></label>
+          <label><span>{text.searchLabel}</span><input value={filters.search} onChange={(e) => updateFilter("search", e.target.value)} placeholder="Plumber, cleaner, Niyas..." /></label>
+          <div className="location-autocomplete">
+            <label>
+              <span>{text.pincodeLabel}</span>
+              <input
+                value={filters.pincode}
+                onChange={(e) => updateFilter("pincode", e.target.value)}
+                placeholder="673633"
+                autoComplete="off"
+              />
+            </label>
+            {locationSuggestions.length > 0 && (
+              <ul className="suggestions-list">
+                {locationSuggestions.map((loc) => (
+                  <li key={loc.id}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        updateFilter("pincode", loc.pincode);
+                        setLocationSuggestions([]);
+                      }}
+                    >
+                      <span>{loc.display_name}</span>
+                      <strong>{loc.pincode}</strong>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
           <div className="toggle-row">
             <button className={filters.verified ? "toggle active" : "toggle"} onClick={() => updateFilter("verified", !filters.verified)} type="button">{text.verifiedOnly}</button>
             <button className={filters.available ? "toggle active" : "toggle"} onClick={() => updateFilter("available", !filters.available)} type="button">{text.availableOnly}</button>
@@ -258,18 +332,18 @@ function App() {
         <div className="panel">
           <form className="submission-form" onSubmit={handleSubmit}>
             <div className="form-grid two-up">
-              <label><span>{text.submissionName}</span><input required value={submission.name} onChange={(event) => updateSubmission("name", event.target.value)} /></label>
-              <label><span>{text.submissionPhone}</span><input required value={submission.phone_number} onChange={(event) => updateSubmission("phone_number", event.target.value)} /></label>
+              <label><span>{text.submissionName}</span><input required value={submission.name} onChange={(e) => updateSubmission("name", e.target.value)} /></label>
+              <label><span>{text.submissionPhone}</span><input required value={submission.phone_number} onChange={(e) => updateSubmission("phone_number", e.target.value)} /></label>
             </div>
-            <label><span>{text.submissionCategory}</span><select required value={submission.category} onChange={(event) => updateSubmission("category", event.target.value)}><option value="">{text.selectCategory}</option>{homeData.categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</select></label>
+            <label><span>{text.submissionCategory}</span><select required value={submission.category} onChange={(e) => updateSubmission("category", e.target.value)}><option value="">{text.selectCategory}</option>{homeData.categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select></label>
             <div className="form-grid three-up">
-              <label><span>{text.submissionCity}</span><input required value={submission.city} onChange={(event) => updateSubmission("city", event.target.value)} /></label>
-              <label><span>{text.submissionArea}</span><input required value={submission.area_name} onChange={(event) => updateSubmission("area_name", event.target.value)} /></label>
-              <label><span>{text.submissionPincode}</span><input required value={submission.pincode} onChange={(event) => updateSubmission("pincode", event.target.value)} /></label>
+              <label><span>{text.submissionCity}</span><input required value={submission.city} onChange={(e) => updateSubmission("city", e.target.value)} /></label>
+              <label><span>{text.submissionArea}</span><input required value={submission.area_name} onChange={(e) => updateSubmission("area_name", e.target.value)} /></label>
+              <label><span>{text.submissionPincode}</span><input required value={submission.pincode} onChange={(e) => updateSubmission("pincode", e.target.value)} /></label>
             </div>
-            <label><span>{text.submissionDescription}</span><textarea rows="4" value={submission.service_description} onChange={(event) => updateSubmission("service_description", event.target.value)} placeholder="Emergency plumbing, wiring, painting, home cleaning..." /></label>
-            <label className="checkbox-row"><input type="checkbox" checked={submission.availability_status} onChange={(event) => updateSubmission("availability_status", event.target.checked)} /><span>{text.submissionAvailability}</span></label>
-            <label className="checkbox-row"><input type="checkbox" checked={submission.consent_to_contact} onChange={(event) => updateSubmission("consent_to_contact", event.target.checked)} /><span>{text.submissionConsent}</span></label>
+            <label><span>{text.submissionDescription}</span><textarea rows="4" value={submission.service_description} onChange={(e) => updateSubmission("service_description", e.target.value)} placeholder="Emergency plumbing, wiring, painting, home cleaning..." /></label>
+            <label className="checkbox-row"><input type="checkbox" checked={submission.availability_status} onChange={(e) => updateSubmission("availability_status", e.target.checked)} /><span>{text.submissionAvailability}</span></label>
+            <label className="checkbox-row"><input type="checkbox" checked={submission.consent_to_contact} onChange={(e) => updateSubmission("consent_to_contact", e.target.checked)} /><span>{text.submissionConsent}</span></label>
             {submissionState.error ? <p className="form-message error">{submissionState.error}</p> : null}
             {submissionState.success ? <p className="form-message success">{submissionState.success}</p> : null}
             <button className="submit-button" disabled={submissionState.loading} type="submit">{submissionState.loading ? text.submitting : text.submit}</button>
@@ -289,13 +363,121 @@ function App() {
                   <div><h3>{worker.name}</h3><p>{worker.category.name} - {worker.location.display_name}</p></div>
                   {worker.is_verified ? <span className="verified-chip">{text.verified}</span> : null}
                 </div>
-                <div className="meta-row"><span>{worker.average_rating ? `${worker.average_rating}/5` : text.newBadge}</span><span className={worker.availability_status ? "status available" : "status unavailable"}>{worker.availability_status ? text.available : text.unavailable}</span></div>
-                <div className="action-row"><a href={worker.call_url} className="action-button call-button">{text.call}</a><a href={worker.whatsapp_url} className="action-button whatsapp-button" target="_blank" rel="noreferrer">{text.whatsapp}</a></div>
+                <div className="meta-row"><span>{worker.average_rating >= 4.5 ? "🔥 Top Rated" : worker.average_rating ? `${worker.average_rating}/5` : text.newBadge}</span><span className={worker.availability_status ? "status available" : "status unavailable"}>{worker.availability_status ? text.available : text.unavailable}</span></div>
+                <div className="action-row">
+                  <a href={worker.call_url} className="action-button call-button">{text.call}</a>
+                  <a href={worker.whatsapp_url} className="action-button whatsapp-button" target="_blank" rel="noreferrer">{text.whatsapp}</a>
+                </div>
+                <Link to={`/workers/${worker.id}`} className="profile-link">{text.viewProfile}</Link>
               </article>
             ))}
           </div>
         )}
+        {pagination.count > 20 && (
+          <div className="pagination-row">
+            <button className="ghost-button" disabled={!pagination.previous} onClick={() => updateFilter("page", (pagination.page ?? 1) - 1)} type="button">← Prev</button>
+            <span className="page-info">Page {pagination.page ?? 1} · {pagination.count} workers</span>
+            <button className="ghost-button" disabled={!pagination.next} onClick={() => updateFilter("page", (pagination.page ?? 1) + 1)} type="button">Next →</button>
+          </div>
+        )}
       </section>
+    </main>
+  );
+}
+
+function WorkerDetailPage() {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const [worker, setWorker] = useState(null);
+  const [state, setState] = useState({ loading: true, error: "" });
+  const [rating, setRating] = useState(0);
+  const [ratingState, setRatingState] = useState({ loading: false, error: "", success: "" });
+
+  useEffect(() => {
+    const controller = new AbortController();
+    requestJson(`/workers/${id}/`, { signal: controller.signal })
+      .then((data) => {
+        setWorker(data);
+        setState({ loading: false, error: "" });
+      })
+      .catch((error) => {
+        if (error.name !== "AbortError") setState({ loading: false, error: text.error });
+      });
+    return () => controller.abort();
+  }, [id]);
+
+  async function handleRating(event) {
+    event.preventDefault();
+    if (!rating) return;
+    try {
+      setRatingState({ loading: true, error: "", success: "" });
+      const data = await requestJson(`/workers/${id}/ratings/`, { method: "POST", body: { rating } });
+      setWorker((w) => ({ ...w, average_rating: data.average_rating }));
+      setRating(0);
+      setRatingState({ loading: false, error: "", success: text.ratingSuccess });
+    } catch (error) {
+      setRatingState({ loading: false, error: error.message || text.ratingError, success: "" });
+    }
+  }
+
+  if (state.loading) return <main className="app-shell"><p className="state-copy">{text.loading}</p></main>;
+  if (state.error) return <main className="app-shell"><p className="state-copy error">{state.error}</p></main>;
+  if (!worker) return null;
+
+  return (
+    <main className="app-shell">
+      <button className="ghost-button back-button" onClick={() => navigate(-1)} type="button">{text.backToSearch}</button>
+      <div className="detail-grid">
+        <div className="panel detail-main">
+          <div className="worker-topline">
+            <div>
+              <h2>{worker.name}</h2>
+              <p>{worker.category.name} · {worker.location.display_name} · {worker.location.pincode}</p>
+            </div>
+            {worker.is_verified ? <span className="verified-chip">{text.verified}</span> : null}
+          </div>
+          <div className="meta-row">
+            <span>{worker.average_rating ? `⭐ ${worker.average_rating}/5` : text.newBadge}</span>
+            <span className={worker.availability_status ? "status available" : "status unavailable"}>
+              {worker.availability_status ? text.available : text.unavailable}
+            </span>
+          </div>
+          <div className="action-row">
+            <a href={worker.call_url} className="action-button call-button">{text.call}</a>
+            <a href={worker.whatsapp_url} className="action-button whatsapp-button" target="_blank" rel="noreferrer">{text.whatsapp}</a>
+          </div>
+        </div>
+
+        <div className="panel">
+          <h3>{text.serviceDescription}</h3>
+          <p className="detail-description">
+            {worker.submission?.service_description || text.noDescription}
+          </p>
+        </div>
+
+        <div className="panel">
+          <h3>{text.rateWorker}</h3>
+          <form className="rating-form" onSubmit={handleRating}>
+            <div className="star-row">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <button
+                  key={star}
+                  type="button"
+                  className={`star-btn ${rating >= star ? "active" : ""}`}
+                  onClick={() => setRating(star)}
+                >
+                  ★
+                </button>
+              ))}
+            </div>
+            {ratingState.error ? <p className="form-message error">{ratingState.error}</p> : null}
+            {ratingState.success ? <p className="form-message success">{ratingState.success}</p> : null}
+            <button className="submit-button" disabled={!rating || ratingState.loading} type="submit">
+              {ratingState.loading ? text.submitting : text.submitRating}
+            </button>
+          </form>
+        </div>
+      </div>
     </main>
   );
 }

@@ -56,7 +56,7 @@ class DirectoryApiTests(APITestCase):
         )
 
         self.assertEqual(response.status_code, 200)
-        payload = response.json()
+        payload = response.json()["results"]
         self.assertEqual(len(payload), 1)
         self.assertEqual(payload[0]["name"], "Niyas")
         self.assertEqual(payload[0]["whatsapp_url"], "https://wa.me/919744000001")
@@ -69,7 +69,7 @@ class DirectoryApiTests(APITestCase):
         )
 
         self.assertEqual(response.status_code, 200)
-        payload = response.json()
+        payload = response.json()["results"]
         self.assertEqual(len(payload), 1)
         self.assertEqual(payload[0]["name"], "Niyas")
 
@@ -124,6 +124,42 @@ class DirectoryApiTests(APITestCase):
 
         self.assertEqual(response.status_code, 400)
         self.assertIn("phone_number", response.json())
+
+    def test_worker_detail_endpoint(self):
+        response = self.client.get(reverse("worker-detail", kwargs={"pk": self.verified_worker.pk}))
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload["name"], "Niyas")
+        self.assertEqual(payload["average_rating"], 4.5)
+
+    def test_rating_submission_creates_rating(self):
+        response = self.client.post(
+            reverse("worker-rating-create", kwargs={"pk": self.verified_worker.pk}),
+            {"rating": 3},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 201)
+        self.assertIn("average_rating", response.json())
+
+    def test_rating_submission_rejects_invalid_rating(self):
+        response = self.client.post(
+            reverse("worker-rating-create", kwargs={"pk": self.verified_worker.pk}),
+            {"rating": 6},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 400)
+
+    def test_rating_submission_returns_404_for_unknown_worker(self):
+        response = self.client.post(
+            reverse("worker-rating-create", kwargs={"pk": 99999}),
+            {"rating": 4},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 404)
 
     def test_submission_approval_creates_worker(self):
         submission = WorkerSubmission.objects.create(
