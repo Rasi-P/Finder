@@ -104,6 +104,9 @@ class DirectoryApiTests(APITestCase):
         submission = WorkerSubmission.objects.get(name="Sameer")
         self.assertEqual(submission.phone_number, "919876543210")
         self.assertEqual(submission.status, WorkerSubmission.STATUS_PENDING)
+        # Worker should be created immediately (unverified)
+        self.assertIsNotNone(submission.approved_worker)
+        self.assertFalse(submission.approved_worker.is_verified)
 
     def test_worker_submission_rejects_existing_directory_number(self):
         response = self.client.post(
@@ -173,10 +176,22 @@ class DirectoryApiTests(APITestCase):
             availability_status=True,
             consent_to_contact=True,
         )
+        # Pre-create the worker (as the view now does on submission)
+        location, _ = Location.objects.get_or_create(
+            area_name="Mankavu", pincode="673007", defaults={"city": "Kozhikode"}
+        )
+        worker = Worker.objects.create(
+            phone_number="9876543211",
+            name="Riyas",
+            category=self.electrician,
+            location=location,
+            is_verified=False,
+        )
+        submission.approved_worker = worker
+        submission.save(update_fields=["approved_worker"])
 
-        worker = submission.approve()
+        approved_worker = submission.approve()
 
         self.assertEqual(submission.status, WorkerSubmission.STATUS_APPROVED)
-        self.assertEqual(submission.approved_worker, worker)
-        self.assertEqual(worker.phone_number, "9876543211")
+        self.assertTrue(approved_worker.is_verified)
         self.assertTrue(Location.objects.filter(area_name="Mankavu", pincode="673007").exists())

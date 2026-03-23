@@ -46,6 +46,7 @@ class WorkerSerializer(serializers.ModelSerializer):
     whatsapp_url = serializers.CharField(read_only=True)
     call_url = serializers.CharField(read_only=True)
     average_rating = serializers.SerializerMethodField()
+    service_description = serializers.SerializerMethodField()
 
     class Meta:
         model = Worker
@@ -61,6 +62,7 @@ class WorkerSerializer(serializers.ModelSerializer):
             "whatsapp_url",
             "call_url",
             "average_rating",
+            "service_description",
         )
 
     def get_average_rating(self, obj):
@@ -68,6 +70,10 @@ class WorkerSerializer(serializers.ModelSerializer):
         if average is None:
             average = obj.ratings.aggregate(avg=Avg("rating"))["avg"]
         return round(average, 1) if average is not None else None
+
+    def get_service_description(self, obj):
+        submission = getattr(obj, "submission", None)
+        return submission.service_description if submission else ""
 
 
 class RatingSerializer(serializers.ModelSerializer):
@@ -119,11 +125,7 @@ class WorkerSubmissionSerializer(serializers.ModelSerializer):
                 {"consent_to_contact": "Consent is required before submitting your details."}
             )
 
-        if Worker.objects.filter(phone_number=phone_number).exists():
-            raise serializers.ValidationError(
-                {"phone_number": "This number is already listed in the directory."}
-            )
-
+        # Block if a pending/approved submission already exists for this number
         if WorkerSubmission.objects.filter(
             phone_number=phone_number,
             status__in=[
@@ -133,6 +135,12 @@ class WorkerSubmissionSerializer(serializers.ModelSerializer):
         ).exists():
             raise serializers.ValidationError(
                 {"phone_number": "A submission for this number is already under review."}
+            )
+
+        # Block if a verified worker already exists (not created by a pending submission)
+        if Worker.objects.filter(phone_number=phone_number, is_verified=True).exists():
+            raise serializers.ValidationError(
+                {"phone_number": "This number is already listed in the directory."}
             )
 
         return attrs

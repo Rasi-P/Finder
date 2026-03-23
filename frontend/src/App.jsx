@@ -154,7 +154,7 @@ function App() {
         pincode: deferredPincode,
         search: deferredSearch,
         verified: filters.verified || "",
-        available: filters.available,
+        available: filters.available || "",
         page: filters.page ?? 1,
       },
       signal: controller.signal,
@@ -186,25 +186,6 @@ function App() {
     startTransition(() => {
       setFilters((current) => ({ ...current, [key]: value, ...(key !== "page" ? { page: 1 } : {}) }));
     });
-  }
-
-  function updateSubmission(key, value) {
-    setSubmission((current) => ({ ...current, [key]: value }));
-  }
-
-  async function handleSubmit(event) {
-    event.preventDefault();
-    try {
-      setSubmissionState({ loading: true, error: "", success: "" });
-      const response = await requestJson("/worker-submissions/", {
-        method: "POST",
-        body: { ...submission, category: Number(submission.category) },
-      });
-      setSubmission(emptySubmission);
-      setSubmissionState({ loading: false, error: "", success: response.message || text.submitSuccess });
-    } catch (error) {
-      setSubmissionState({ loading: false, error: error.message || text.submitDefaultError, success: "" });
-    }
   }
 
   return (
@@ -309,7 +290,9 @@ function HomePage({
               <article key={worker.id} className="worker-card">
                 <div className="worker-topline">
                   <div><h3>{worker.name}</h3><p>{worker.category.name} - {worker.location.display_name}</p></div>
-                  {worker.is_verified ? <span className="verified-chip">{text.verified}</span> : null}
+                  {worker.is_verified
+                    ? <span className="verified-chip">{text.verified}</span>
+                    : <span className="pending-chip">Pending</span>}
                 </div>
                 <div className="meta-row"><span>{worker.average_rating >= 4.5 ? "🔥 Top Rated" : worker.average_rating ? `${worker.average_rating}/5` : text.newBadge}</span><span className={worker.availability_status ? "status available" : "status unavailable"}>{worker.availability_status ? text.available : text.unavailable}</span></div>
                 <div className="action-row">
@@ -450,7 +433,9 @@ function WorkerDetailPage() {
               <h2>{worker.name}</h2>
               <p>{worker.category.name} · {worker.location.display_name} · {worker.location.pincode}</p>
             </div>
-            {worker.is_verified ? <span className="verified-chip">{text.verified}</span> : null}
+            {worker.is_verified
+              ? <span className="verified-chip">{text.verified}</span>
+              : <span className="pending-chip">Pending</span>}
           </div>
           <div className="meta-row">
             <span>{worker.average_rating ? `⭐ ${worker.average_rating}/5` : text.newBadge}</span>
@@ -467,7 +452,7 @@ function WorkerDetailPage() {
         <div className="panel">
           <h3>{text.serviceDescription}</h3>
           <p className="detail-description">
-            {worker.submission?.service_description || text.noDescription}
+            {worker.service_description || text.noDescription}
           </p>
         </div>
 

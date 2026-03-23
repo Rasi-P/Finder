@@ -152,10 +152,31 @@ class WorkerSubmissionCreateAPIView(CreateAPIView):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         submission = serializer.save()
+
+        # Auto-create an unverified Worker immediately so they appear in the directory
+        location, _ = Location.objects.get_or_create(
+            area_name=submission.area_name.strip(),
+            pincode=submission.pincode.strip(),
+            defaults={"city": submission.city.strip()},
+        )
+        worker, _ = Worker.objects.get_or_create(
+            phone_number=submission.normalized_phone_number,
+            defaults={
+                "name": submission.name.strip(),
+                "category": submission.category,
+                "location": location,
+                "is_verified": False,
+                "availability_status": submission.availability_status,
+            },
+        )
+        submission.phone_number = submission.normalized_phone_number
+        submission.approved_worker = worker
+        submission.save(update_fields=["phone_number", "approved_worker"])
+
         payload = {
             "id": submission.id,
             "status": submission.status,
-            "message": "Thanks. Your details are saved and waiting for review.",
+            "message": "Your profile is now live! It will be marked as verified after review.",
         }
         headers = self.get_success_headers(payload)
         return Response(payload, status=status.HTTP_201_CREATED, headers=headers)

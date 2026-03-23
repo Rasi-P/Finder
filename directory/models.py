@@ -105,35 +105,34 @@ class WorkerSubmission(models.Model):
 
     @transaction.atomic
     def approve(self):
-        location, _ = Location.objects.get_or_create(
-            area_name=self.area_name.strip(),
-            pincode=self.pincode.strip(),
-            defaults={"city": self.city.strip()},
-        )
-
-        worker, _ = Worker.objects.update_or_create(
-            phone_number=self.normalized_phone_number,
-            defaults={
-                "name": self.name.strip(),
-                "category": self.category,
-                "location": location,
-                "is_verified": False,
-                "availability_status": self.availability_status,
-            },
-        )
+        # Worker already exists (created on submission). Just verify them.
+        if self.approved_worker:
+            self.approved_worker.is_verified = True
+            self.approved_worker.save(update_fields=["is_verified"])
+            worker = self.approved_worker
+        else:
+            # Fallback: create worker if somehow missing
+            location, _ = Location.objects.get_or_create(
+                area_name=self.area_name.strip(),
+                pincode=self.pincode.strip(),
+                defaults={"city": self.city.strip()},
+            )
+            worker, _ = Worker.objects.update_or_create(
+                phone_number=self.normalized_phone_number,
+                defaults={
+                    "name": self.name.strip(),
+                    "category": self.category,
+                    "location": location,
+                    "is_verified": True,
+                    "availability_status": self.availability_status,
+                },
+            )
+            self.approved_worker = worker
 
         self.phone_number = self.normalized_phone_number
         self.status = self.STATUS_APPROVED
-        self.approved_worker = worker
         self.reviewed_at = timezone.now()
-        self.save(
-            update_fields=[
-                "phone_number",
-                "status",
-                "approved_worker",
-                "reviewed_at",
-            ]
-        )
+        self.save(update_fields=["phone_number", "status", "approved_worker", "reviewed_at"])
         return worker
 
     def reject(self):
