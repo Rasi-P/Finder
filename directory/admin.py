@@ -35,7 +35,15 @@ class WorkerAdmin(admin.ModelAdmin):
 @admin.action(description="Approve selected submissions and create worker listings")
 def approve_submissions(modeladmin, request, queryset):
     approved_count = 0
-    for submission in queryset:
+    # include stuck approved submissions that never got a worker created
+    to_process = queryset.exclude(
+        status=WorkerSubmission.STATUS_APPROVED,
+        approved_worker__isnull=False,
+    )
+    for submission in to_process:
+        submission.status = WorkerSubmission.STATUS_PENDING
+        submission.approved_worker = None
+        submission.save(update_fields=["status", "approved_worker"])
         submission.approve()
         approved_count += 1
 

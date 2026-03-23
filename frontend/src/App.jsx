@@ -6,9 +6,8 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://127.0.0.1:8000
 const text = {
   brand: "Finder",
   badge: "Hyper-local help in minutes",
-  title: "Find trusted workers nearby and let new workers submit their own details.",
-  subtitle:
-    "Direct call and WhatsApp links for users, plus a public listing form for workers that stays pending until admin approval.",
+  title: "Find trusted workers near you.",
+  subtitle: "Direct call and WhatsApp links. No login, no booking, no friction.",
   searchLabel: "Search by worker or service",
   pincodeLabel: "Pincode or area",
   verifiedOnly: "Verified only",
@@ -23,9 +22,11 @@ const text = {
   categoriesHint: "Tap a category to narrow the list instantly.",
   locationsTitle: "Nearby areas",
   locationsHint: "Use a familiar neighbourhood or pincode to search.",
-  submissionTitle: "Add your service",
-  submissionHint:
-    "Workers can add their own details here. Submissions stay pending until you approve them in Django admin.",
+  joinBanner: "Are you a worker?",
+  joinBannerSub: "List your service for free. Get discovered by people near you.",
+  joinButton: "Register as a Worker →",
+  joinTitle: "List your service",
+  joinHint: "Fill in your details. Your listing goes live after a quick review.",
   submissionName: "Full name",
   submissionPhone: "Phone or WhatsApp number",
   submissionCategory: "Service category",
@@ -53,7 +54,7 @@ const text = {
   whatsapp: "WhatsApp",
   newBadge: "New",
   viewProfile: "View profile",
-  backToSearch: "← Back to search",
+  backToHome: "← Back to home",
   rateWorker: "Rate this worker",
   submitRating: "Submit rating",
   ratingSuccess: "Thanks for your rating!",
@@ -125,10 +126,8 @@ function App() {
   const [workers, setWorkers] = useState([]);
   const [pagination, setPagination] = useState({ count: 0, next: null, previous: null, page: 1 });
   const [filters, setFilters] = useState({ category: "", pincode: "", search: "", verified: false, available: false });
-  const [submission, setSubmission] = useState(emptySubmission);
   const [homeState, setHomeState] = useState({ loading: true, error: "" });
   const [workerState, setWorkerState] = useState({ loading: true, error: "" });
-  const [submissionState, setSubmissionState] = useState({ loading: false, error: "", success: "" });
   const [locationSuggestions, setLocationSuggestions] = useState([]);
   const deferredSearch = useDeferredValue(filters.search);
   const deferredPincode = useDeferredValue(filters.pincode);
@@ -210,27 +209,8 @@ function App() {
 
   return (
     <Routes>
-      <Route
-        path="/"
-        element={
-          <HomePage
-            homeData={homeData}
-            workers={workers}
-            pagination={pagination}
-            filters={filters}
-            updateFilter={updateFilter}
-            homeState={homeState}
-            workerState={workerState}
-            submission={submission}
-            updateSubmission={updateSubmission}
-            handleSubmit={handleSubmit}
-            submissionState={submissionState}
-            setFilters={setFilters}
-            locationSuggestions={locationSuggestions}
-            setLocationSuggestions={setLocationSuggestions}
-          />
-        }
-      />
+      <Route path="/" element={<HomePage homeData={homeData} workers={workers} pagination={pagination} filters={filters} updateFilter={updateFilter} homeState={homeState} workerState={workerState} setFilters={setFilters} locationSuggestions={locationSuggestions} setLocationSuggestions={setLocationSuggestions} />} />
+      <Route path="/join" element={<JoinPage />} />
       <Route path="/workers/:id" element={<WorkerDetailPage />} />
     </Routes>
   );
@@ -238,8 +218,7 @@ function App() {
 
 function HomePage({
   homeData, workers, pagination, filters, updateFilter, homeState, workerState,
-  submission, updateSubmission, handleSubmit, submissionState, setFilters,
-  locationSuggestions, setLocationSuggestions,
+  setFilters, locationSuggestions, setLocationSuggestions,
 }) {
   return (
     <main className="app-shell">
@@ -255,26 +234,14 @@ function HomePage({
           <div className="location-autocomplete">
             <label>
               <span>{text.pincodeLabel}</span>
-              <input
-                value={filters.pincode}
-                onChange={(e) => updateFilter("pincode", e.target.value)}
-                placeholder="673633"
-                autoComplete="off"
-              />
+              <input value={filters.pincode} onChange={(e) => updateFilter("pincode", e.target.value)} placeholder="673633" autoComplete="off" />
             </label>
             {locationSuggestions.length > 0 && (
               <ul className="suggestions-list">
                 {locationSuggestions.map((loc) => (
                   <li key={loc.id}>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        updateFilter("pincode", loc.pincode);
-                        setLocationSuggestions([]);
-                      }}
-                    >
-                      <span>{loc.display_name}</span>
-                      <strong>{loc.pincode}</strong>
+                    <button type="button" onClick={() => { updateFilter("pincode", loc.pincode); setLocationSuggestions([]); }}>
+                      <span>{loc.display_name}</span><strong>{loc.pincode}</strong>
                     </button>
                   </li>
                 ))}
@@ -324,31 +291,12 @@ function HomePage({
         </div>
       </section>
 
-      <section className="submission-grid">
-        <div className="panel submission-copy">
-          <div className="section-heading"><div><h2>{text.submissionTitle}</h2><p>{text.submissionHint}</p></div></div>
-          <div className="submission-steps"><p>1. Add contact and service details.</p><p>2. The request stays pending for review.</p><p>3. Approve it in admin to publish the listing.</p></div>
+      <section className="join-banner">
+        <div>
+          <h2>{text.joinBanner}</h2>
+          <p>{text.joinBannerSub}</p>
         </div>
-        <div className="panel">
-          <form className="submission-form" onSubmit={handleSubmit}>
-            <div className="form-grid two-up">
-              <label><span>{text.submissionName}</span><input required value={submission.name} onChange={(e) => updateSubmission("name", e.target.value)} /></label>
-              <label><span>{text.submissionPhone}</span><input required value={submission.phone_number} onChange={(e) => updateSubmission("phone_number", e.target.value)} /></label>
-            </div>
-            <label><span>{text.submissionCategory}</span><select required value={submission.category} onChange={(e) => updateSubmission("category", e.target.value)}><option value="">{text.selectCategory}</option>{homeData.categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select></label>
-            <div className="form-grid three-up">
-              <label><span>{text.submissionCity}</span><input required value={submission.city} onChange={(e) => updateSubmission("city", e.target.value)} /></label>
-              <label><span>{text.submissionArea}</span><input required value={submission.area_name} onChange={(e) => updateSubmission("area_name", e.target.value)} /></label>
-              <label><span>{text.submissionPincode}</span><input required value={submission.pincode} onChange={(e) => updateSubmission("pincode", e.target.value)} /></label>
-            </div>
-            <label><span>{text.submissionDescription}</span><textarea rows="4" value={submission.service_description} onChange={(e) => updateSubmission("service_description", e.target.value)} placeholder="Emergency plumbing, wiring, painting, home cleaning..." /></label>
-            <label className="checkbox-row"><input type="checkbox" checked={submission.availability_status} onChange={(e) => updateSubmission("availability_status", e.target.checked)} /><span>{text.submissionAvailability}</span></label>
-            <label className="checkbox-row"><input type="checkbox" checked={submission.consent_to_contact} onChange={(e) => updateSubmission("consent_to_contact", e.target.checked)} /><span>{text.submissionConsent}</span></label>
-            {submissionState.error ? <p className="form-message error">{submissionState.error}</p> : null}
-            {submissionState.success ? <p className="form-message success">{submissionState.success}</p> : null}
-            <button className="submit-button" disabled={submissionState.loading} type="submit">{submissionState.loading ? text.submitting : text.submit}</button>
-          </form>
-        </div>
+        <Link to="/join" className="join-button">{text.joinButton}</Link>
       </section>
 
       <section className="results-panel">
@@ -381,6 +329,74 @@ function HomePage({
           </div>
         )}
       </section>
+    </main>
+  );
+}
+
+function JoinPage() {
+  const navigate = useNavigate();
+  const [categories, setCategories] = useState([]);
+  const [submission, setSubmission] = useState(emptySubmission);
+  const [submissionState, setSubmissionState] = useState({ loading: false, error: "", success: "" });
+
+  useEffect(() => {
+    requestJson("/categories/").then(setCategories).catch(() => {});
+  }, []);
+
+  function updateSubmission(key, value) {
+    setSubmission((current) => ({ ...current, [key]: value }));
+  }
+
+  async function handleSubmit(event) {
+    event.preventDefault();
+    try {
+      setSubmissionState({ loading: true, error: "", success: "" });
+      const response = await requestJson("/worker-submissions/", {
+        method: "POST",
+        body: { ...submission, category: Number(submission.category) },
+      });
+      setSubmission(emptySubmission);
+      setSubmissionState({ loading: false, error: "", success: response.message || text.submitSuccess });
+    } catch (error) {
+      setSubmissionState({ loading: false, error: error.message || text.submitDefaultError, success: "" });
+    }
+  }
+
+  return (
+    <main className="app-shell">
+      <button className="ghost-button back-button" onClick={() => navigate("/")} type="button">{text.backToHome}</button>
+      <div className="join-grid">
+        <div className="panel join-copy">
+          <div className="brand-lockup"><span className="brand-mark">F</span><span className="brand-name">{text.brand}</span></div>
+          <h2>{text.joinTitle}</h2>
+          <p>{text.joinHint}</p>
+          <div className="submission-steps">
+            <p>1. Fill in your contact and service details.</p>
+            <p>2. Your request stays pending for review.</p>
+            <p>3. Once approved, your listing goes live.</p>
+          </div>
+        </div>
+        <div className="panel">
+          <form className="submission-form" onSubmit={handleSubmit}>
+            <div className="form-grid two-up">
+              <label><span>{text.submissionName}</span><input required value={submission.name} onChange={(e) => updateSubmission("name", e.target.value)} /></label>
+              <label><span>{text.submissionPhone}</span><input required value={submission.phone_number} onChange={(e) => updateSubmission("phone_number", e.target.value)} /></label>
+            </div>
+            <label><span>{text.submissionCategory}</span><select required value={submission.category} onChange={(e) => updateSubmission("category", e.target.value)}><option value="">{text.selectCategory}</option>{categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select></label>
+            <div className="form-grid three-up">
+              <label><span>{text.submissionCity}</span><input required value={submission.city} onChange={(e) => updateSubmission("city", e.target.value)} /></label>
+              <label><span>{text.submissionArea}</span><input required value={submission.area_name} onChange={(e) => updateSubmission("area_name", e.target.value)} /></label>
+              <label><span>{text.submissionPincode}</span><input required value={submission.pincode} onChange={(e) => updateSubmission("pincode", e.target.value)} /></label>
+            </div>
+            <label><span>{text.submissionDescription}</span><textarea rows="4" value={submission.service_description} onChange={(e) => updateSubmission("service_description", e.target.value)} placeholder="Emergency plumbing, wiring, painting, home cleaning..." /></label>
+            <label className="checkbox-row"><input type="checkbox" checked={submission.availability_status} onChange={(e) => updateSubmission("availability_status", e.target.checked)} /><span>{text.submissionAvailability}</span></label>
+            <label className="checkbox-row"><input type="checkbox" checked={submission.consent_to_contact} onChange={(e) => updateSubmission("consent_to_contact", e.target.checked)} /><span>{text.submissionConsent}</span></label>
+            {submissionState.error ? <p className="form-message error">{submissionState.error}</p> : null}
+            {submissionState.success ? <p className="form-message success">{submissionState.success}</p> : null}
+            <button className="submit-button" disabled={submissionState.loading} type="submit">{submissionState.loading ? text.submitting : text.submit}</button>
+          </form>
+        </div>
+      </div>
     </main>
   );
 }
@@ -426,7 +442,7 @@ function WorkerDetailPage() {
 
   return (
     <main className="app-shell">
-      <button className="ghost-button back-button" onClick={() => navigate(-1)} type="button">{text.backToSearch}</button>
+      <button className="ghost-button back-button" onClick={() => navigate(-1)} type="button">{text.backToHome}</button>
       <div className="detail-grid">
         <div className="panel detail-main">
           <div className="worker-topline">
