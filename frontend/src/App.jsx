@@ -3,64 +3,127 @@ import { Link, Route, Routes, useNavigate, useParams } from "react-router-dom";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://127.0.0.1:8000/api";
 
-const text = {
-  brand: "Finder",
-  badge: "Hyper-local help in minutes",
-  title: "Find trusted workers near you.",
-  subtitle: "Direct call and WhatsApp links. No login, no booking, no friction.",
-  searchLabel: "Search by worker or service",
-  pincodeLabel: "Pincode or area",
-  verifiedOnly: "Verified only",
-  availableOnly: "Available now",
-  clearFilters: "Clear filters",
-  searchHint: "No login required. Reach a worker in one tap.",
-  statsCategories: "Services",
-  statsLocations: "Areas",
-  statsWorkers: "Contacts",
-  statsVerified: "Verified",
-  categoriesTitle: "Popular services",
-  categoriesHint: "Tap a category to narrow the list instantly.",
-  locationsTitle: "Nearby areas",
-  locationsHint: "Use a familiar neighbourhood or pincode to search.",
-  joinBanner: "Are you a worker?",
-  joinBannerSub: "List your service for free. Get discovered by people near you.",
-  joinButton: "Register as a Worker →",
-  joinTitle: "List your service",
-  joinHint: "Fill in your details. Your listing goes live after a quick review.",
-  submissionName: "Full name",
-  submissionPhone: "Phone or WhatsApp number",
-  submissionCategory: "Service category",
-  submissionCity: "City",
-  submissionArea: "Area",
-  submissionPincode: "Pincode",
-  submissionDescription: "Short service description",
-  submissionAvailability: "Available for calls right now",
-  submissionConsent: "I agree to be contacted and shown in the directory after approval.",
-  submit: "Submit details",
-  submitting: "Submitting...",
-  submitSuccess: "Thanks. Your details were submitted for review.",
-  submitDefaultError: "We could not save the submission right now.",
-  resultsTitle: "Available workers",
-  resultsHint: "Fast results, direct contact, no booking friction.",
-  loading: "Loading local contacts...",
-  error: "We could not reach the backend. Start Django on port 8000 and try again.",
-  noResults: "No workers matched this filter yet.",
-  allServices: "All services",
-  selectCategory: "Select a category",
-  verified: "Verified",
-  available: "Available",
-  unavailable: "Busy",
-  call: "Call",
-  whatsapp: "WhatsApp",
-  newBadge: "New",
-  viewProfile: "View profile",
-  backToHome: "← Back to home",
-  rateWorker: "Rate this worker",
-  submitRating: "Submit rating",
-  ratingSuccess: "Thanks for your rating!",
-  ratingError: "Could not submit rating.",
-  serviceDescription: "Service description",
-  noDescription: "No description provided.",
+const translations = {
+  en: {
+    brand: "Finder",
+    badge: "Hyper-local help in minutes",
+    title: "Find trusted workers near you.",
+    subtitle: "Direct call and WhatsApp links. No login, no booking, no friction.",
+    searchLabel: "Search by worker or service",
+    pincodeLabel: "Pincode or area",
+    verifiedOnly: "Verified only",
+    availableOnly: "Available now",
+    clearFilters: "Clear filters",
+    searchHint: "No login required. Reach a worker in one tap.",
+    statsCategories: "Services",
+    statsLocations: "Areas",
+    statsWorkers: "Contacts",
+    statsVerified: "Verified",
+    categoriesTitle: "Popular services",
+    categoriesHint: "Tap a category to narrow the list instantly.",
+    locationsTitle: "Nearby areas",
+    locationsHint: "Use a familiar neighbourhood or pincode to search.",
+    joinBanner: "Are you a worker?",
+    joinBannerSub: "List your service for free. Get discovered by people near you.",
+    joinButton: "Register as a Worker →",
+    joinTitle: "List your service",
+    joinHint: "Fill in your details. Your listing goes live after a quick review.",
+    submissionName: "Full name",
+    submissionPhone: "Phone or WhatsApp number",
+    submissionCategory: "Service category",
+    submissionCity: "City",
+    submissionArea: "Area",
+    submissionPincode: "Pincode",
+    submissionDescription: "Short service description",
+    submissionAvailability: "Available for calls right now",
+    submissionConsent: "I agree to be contacted and shown in the directory after approval.",
+    submit: "Submit details",
+    submitting: "Submitting...",
+    submitSuccess: "Thanks. Your details were submitted for review.",
+    submitDefaultError: "We could not save the submission right now.",
+    resultsTitle: "Available workers",
+    resultsHint: "Fast results, direct contact, no booking friction.",
+    loading: "Loading local contacts...",
+    error: "We could not reach the backend. Start Django on port 8000 and try again.",
+    noResults: "No workers matched this filter yet.",
+    allServices: "All services",
+    selectCategory: "Select a category",
+    verified: "Verified",
+    available: "Available",
+    unavailable: "Busy",
+    call: "Call",
+    whatsapp: "WhatsApp",
+    newBadge: "New",
+    viewProfile: "View profile",
+    backToHome: "← Back to home",
+    rateWorker: "Rate this worker",
+    submitRating: "Submit rating",
+    ratingSuccess: "Thanks for your rating!",
+    ratingError: "Could not submit rating.",
+    serviceDescription: "Service description",
+    noDescription: "No description provided.",
+    langToggle: "മലയാളം",
+  },
+  ml: {
+    brand: "Finder",
+    badge: "അടുത്തുള്ള സഹായം മിനിറ്റുകൾക്കുള്ളിൽ",
+    title: "വിശ്വസ്തരായ തൊഴിലാളികളെ കണ്ടെത്തൂ.",
+    subtitle: "നേരിട്ട് വിളിക്കാം, WhatsApp ചെയ്യാം. ലോഗിൻ വേണ്ട, ബുക്കിംഗ് വേണ്ട.",
+    searchLabel: "തൊഴിലാളിയെ അല്ലെങ്കിൽ സേവനം തിരയൂ",
+    pincodeLabel: "പിൻകോഡ് അല്ലെങ്കിൽ പ്രദേശം",
+    verifiedOnly: "സ്ഥിരീകരിച്ചവർ മാത്രം",
+    availableOnly: "ഇപ്പോൾ ലഭ്യം",
+    clearFilters: "ഫിൽട്ടർ മായ്ക്കുക",
+    searchHint: "ലോഗിൻ ആവശ്യമില്ല. ഒറ്റ ടാപ്പിൽ തൊഴിലാളിയെ ബന്ധപ്പെടാം.",
+    statsCategories: "സേവനങ്ങൾ",
+    statsLocations: "പ്രദേശങ്ങൾ",
+    statsWorkers: "കോൺടാക്ടുകൾ",
+    statsVerified: "സ്ഥിരീകരിച്ചത്",
+    categoriesTitle: "ജനപ്രിയ സേവനങ്ങൾ",
+    categoriesHint: "ഒരു വിഭാഗം തിരഞ്ഞെടുത്ത് ലിസ്റ്റ് ഉടൻ ചുരുക്കൂ.",
+    locationsTitle: "അടുത്തുള്ള പ്രദേശങ്ങൾ",
+    locationsHint: "പരിചിതമായ നാടോ പിൻകോഡോ ഉപയോഗിച്ച് തിരയൂ.",
+    joinBanner: "നിങ്ങൾ ഒരു തൊഴിലാളിയാണോ?",
+    joinBannerSub: "സൗജന്യമായി ലിസ്റ്റ് ചെയ്യൂ. അടുത്തുള്ളവർ നിങ്ങളെ കണ്ടെത്തട്ടെ.",
+    joinButton: "തൊഴിലാളിയായി രജിസ്റ്റർ ചെയ്യൂ →",
+    joinTitle: "നിങ്ങളുടെ സേവനം ലിസ്റ്റ് ചെയ്യൂ",
+    joinHint: "വിവരങ്ങൾ പൂരിപ്പിക്കൂ. അവലോകനത്തിന് ശേഷം ലിസ്റ്റിംഗ് ലൈവ് ആകും.",
+    submissionName: "പൂർണ്ണ നാമം",
+    submissionPhone: "ഫോൺ അല്ലെങ്കിൽ WhatsApp നമ്പർ",
+    submissionCategory: "സേവന വിഭാഗം",
+    submissionCity: "നഗരം",
+    submissionArea: "പ്രദേശം",
+    submissionPincode: "പിൻകോഡ്",
+    submissionDescription: "ചെറിയ സേവന വിവരണം",
+    submissionAvailability: "ഇപ്പോൾ കോളുകൾക്ക് ലഭ്യമാണ്",
+    submissionConsent: "അംഗീകാരത്തിന് ശേഷം ഡയറക്ടറിയിൽ കാണിക്കാൻ ഞാൻ സമ്മതിക്കുന്നു.",
+    submit: "വിവരങ്ങൾ സമർപ്പിക്കൂ",
+    submitting: "സമർപ്പിക്കുന്നു...",
+    submitSuccess: "നന്ദി. നിങ്ങളുടെ വിവരങ്ങൾ അവലോകനത്തിനായി സമർപ്പിച്ചു.",
+    submitDefaultError: "ഇപ്പോൾ സമർപ്പണം സേവ് ചെയ്യാൻ കഴിഞ്ഞില്ല.",
+    resultsTitle: "ലഭ്യമായ തൊഴിലാളികൾ",
+    resultsHint: "വേഗത്തിലുള്ള ഫലങ്ങൾ, നേരിട്ടുള്ള ബന്ധം.",
+    loading: "ലോക്കൽ കോൺടാക്ടുകൾ ലോഡ് ചെയ്യുന്നു...",
+    error: "ബാക്കെൻഡിൽ എത്താൻ കഴിഞ്ഞില്ല. Django പോർട്ട് 8000-ൽ ആരംഭിക്കൂ.",
+    noResults: "ഈ ഫിൽട്ടറിന് യോജിക്കുന്ന തൊഴിലാളികൾ ഇല്ല.",
+    allServices: "എല്ലാ സേവനങ്ങളും",
+    selectCategory: "ഒരു വിഭാഗം തിരഞ്ഞെടുക്കൂ",
+    verified: "സ്ഥിരീകരിച്ചത്",
+    available: "ലഭ്യം",
+    unavailable: "തിരക്കിൽ",
+    call: "വിളിക്കൂ",
+    whatsapp: "WhatsApp",
+    newBadge: "പുതിയത്",
+    viewProfile: "പ്രൊഫൈൽ കാണൂ",
+    backToHome: "← തിരിച്ച് പോകൂ",
+    rateWorker: "തൊഴിലാളിയെ റേറ്റ് ചെയ്യൂ",
+    submitRating: "റേറ്റിംഗ് സമർപ്പിക്കൂ",
+    ratingSuccess: "റേറ്റിംഗിന് നന്ദി!",
+    ratingError: "റേറ്റിംഗ് സമർപ്പിക്കാൻ കഴിഞ്ഞില്ല.",
+    serviceDescription: "സേവന വിവരണം",
+    noDescription: "വിവരണം നൽകിയിട്ടില്ല.",
+    langToggle: "English",
+  },
 };
 
 const emptySubmission = {
@@ -118,6 +181,10 @@ async function requestJson(path, { method = "GET", params, body, signal } = {}) 
 }
 
 function App() {
+  const [lang, setLang] = useState("en");
+  const text = translations[lang];
+  const toggleLang = () => setLang((l) => (l === "en" ? "ml" : "en"));
+
   const [homeData, setHomeData] = useState({
     stats: { categories: 0, locations: 0, workers: 0, verified_workers: 0 },
     categories: [],
@@ -190,22 +257,25 @@ function App() {
 
   return (
     <Routes>
-      <Route path="/" element={<HomePage homeData={homeData} workers={workers} pagination={pagination} filters={filters} updateFilter={updateFilter} homeState={homeState} workerState={workerState} setFilters={setFilters} locationSuggestions={locationSuggestions} setLocationSuggestions={setLocationSuggestions} />} />
-      <Route path="/join" element={<JoinPage />} />
-      <Route path="/workers/:id" element={<WorkerDetailPage />} />
+      <Route path="/" element={<HomePage text={text} toggleLang={toggleLang} homeData={homeData} workers={workers} pagination={pagination} filters={filters} updateFilter={updateFilter} homeState={homeState} workerState={workerState} setFilters={setFilters} locationSuggestions={locationSuggestions} setLocationSuggestions={setLocationSuggestions} />} />
+      <Route path="/join" element={<JoinPage text={text} toggleLang={toggleLang} />} />
+      <Route path="/workers/:id" element={<WorkerDetailPage text={text} toggleLang={toggleLang} />} />
     </Routes>
   );
 }
 
 function HomePage({
-  homeData, workers, pagination, filters, updateFilter, homeState, workerState,
+  text, toggleLang, homeData, workers, pagination, filters, updateFilter, homeState, workerState,
   setFilters, locationSuggestions, setLocationSuggestions,
 }) {
   return (
     <main className="app-shell">
       <section className="hero-panel">
         <div className="hero-copy">
-          <span className="eyebrow">{text.badge}</span>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+            <span className="eyebrow">{text.badge}</span>
+            <button className="lang-toggle" onClick={toggleLang} type="button">{text.langToggle}</button>
+          </div>
           <div className="brand-lockup"><span className="brand-mark">F</span><span className="brand-name">{text.brand}</span></div>
           <h1>{text.title}</h1>
           <p>{text.subtitle}</p>
@@ -316,7 +386,7 @@ function HomePage({
   );
 }
 
-function JoinPage() {
+function JoinPage({ text, toggleLang }) {
   const navigate = useNavigate();
   const [categories, setCategories] = useState([]);
   const [submission, setSubmission] = useState(emptySubmission);
@@ -347,8 +417,10 @@ function JoinPage() {
 
   return (
     <main className="app-shell">
-      <button className="ghost-button back-button" onClick={() => navigate("/")} type="button">{text.backToHome}</button>
-      <div className="join-grid">
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"8px"}}>
+        <button className="ghost-button back-button" onClick={() => navigate("/")} type="button">{text.backToHome}</button>
+        <button className="lang-toggle" onClick={toggleLang} type="button">{text.langToggle}</button>
+      </div>
         <div className="panel join-copy">
           <div className="brand-lockup"><span className="brand-mark">F</span><span className="brand-name">{text.brand}</span></div>
           <h2>{text.joinTitle}</h2>
@@ -379,12 +451,11 @@ function JoinPage() {
             <button className="submit-button" disabled={submissionState.loading} type="submit">{submissionState.loading ? text.submitting : text.submit}</button>
           </form>
         </div>
-      </div>
     </main>
   );
 }
 
-function WorkerDetailPage() {
+function WorkerDetailPage({ text, toggleLang }) {
   const { id } = useParams();
   const navigate = useNavigate();
   const [worker, setWorker] = useState(null);
@@ -425,7 +496,10 @@ function WorkerDetailPage() {
 
   return (
     <main className="app-shell">
-      <button className="ghost-button back-button" onClick={() => navigate(-1)} type="button">{text.backToHome}</button>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"8px"}}>
+        <button className="ghost-button back-button" onClick={() => navigate(-1)} type="button">{text.backToHome}</button>
+        <button className="lang-toggle" onClick={toggleLang} type="button">{text.langToggle}</button>
+      </div>
       <div className="detail-grid">
         <div className="panel detail-main">
           <div className="worker-topline">

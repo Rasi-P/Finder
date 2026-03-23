@@ -1011,3 +1011,19 @@ h1 {
     text-align: center;
   }
 }
+
+.lang-toggle {
+  padding: 8px 16px;
+  border-radius: 999px;
+  background: rgba(255, 182, 73, 0.15);
+  border: 1px solid rgba(255, 182, 73, 0.4);
+  color: var(--ink);
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background-color 180ms ease;
+}
+
+.lang-toggle:hover {
+  background: rgba(255, 182, 73, 0.28);
+}
