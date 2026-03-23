@@ -124,7 +124,7 @@ function App() {
   });
   const [workers, setWorkers] = useState([]);
   const [pagination, setPagination] = useState({ count: 0, next: null, previous: null, page: 1 });
-  const [filters, setFilters] = useState({ category: "", pincode: "", search: "", verified: false, available: true });
+  const [filters, setFilters] = useState({ category: "", pincode: "", search: "", verified: false, available: false });
   const [submission, setSubmission] = useState(emptySubmission);
   const [homeState, setHomeState] = useState({ loading: true, error: "" });
   const [workerState, setWorkerState] = useState({ loading: true, error: "" });
@@ -285,7 +285,7 @@ function HomePage({
             <button className={filters.verified ? "toggle active" : "toggle"} onClick={() => updateFilter("verified", !filters.verified)} type="button">{text.verifiedOnly}</button>
             <button className={filters.available ? "toggle active" : "toggle"} onClick={() => updateFilter("available", !filters.available)} type="button">{text.availableOnly}</button>
           </div>
-          <button className="ghost-button" onClick={() => setFilters({ category: "", pincode: "", search: "", verified: false, available: true })} type="button">{text.clearFilters}</button>
+          <button className="ghost-button" onClick={() => setFilters({ category: "", pincode: "", search: "", verified: false, available: false })} type="button">{text.clearFilters}</button>
           <p className="search-note">{text.searchHint}</p>
         </div>
       </section>

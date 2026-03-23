@@ -106,9 +106,9 @@ class WorkerSubmission(models.Model):
     @transaction.atomic
     def approve(self):
         location, _ = Location.objects.get_or_create(
-            city=self.city.strip(),
             area_name=self.area_name.strip(),
             pincode=self.pincode.strip(),
+            defaults={"city": self.city.strip()},
         )
 
         worker, _ = Worker.objects.update_or_create(

@@ -468,27 +468,191 @@ h1 {
 
 @media (max-width: 640px) {
   .app-shell {
-    padding: 20px 14px 48px;
+    padding: 16px 12px 80px;
   }
 
-  .hero-copy,
-  .search-card,
-  .panel,
-  .results-panel {
-    border-radius: 24px;
+  .hero-copy {
+    border-radius: 20px;
     padding: 20px;
   }
 
-  .top-row,
-  .worker-topline,
-  .meta-row {
-    flex-direction: column;
+  .hero-copy h1 {
+    font-size: 1.6rem;
+    max-width: 100%;
   }
 
-  .stats-grid,
-  .category-grid,
-  .action-row {
+  .hero-copy p {
+    font-size: 0.9rem;
+    margin-top: 10px;
+  }
+
+  .eyebrow {
+    font-size: 0.8rem;
+    padding: 6px 10px;
+    margin-bottom: 12px;
+  }
+
+  .brand-mark {
+    width: 34px;
+    height: 34px;
+  }
+
+  .search-card {
+    border-radius: 20px;
+    padding: 16px;
+    gap: 12px;
+  }
+
+  .search-card input {
+    padding: 14px 16px;
+    font-size: 1rem;
+  }
+
+  .toggle {
+    padding: 12px 14px;
+    font-size: 0.9rem;
+    flex: 1;
+    text-align: center;
+  }
+
+  .ghost-button {
+    padding: 12px 14px;
+    font-size: 0.9rem;
+    width: 100%;
+    text-align: center;
+  }
+
+  .panel,
+  .results-panel {
+    border-radius: 20px;
+    padding: 16px;
+  }
+
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+
+  .stat-card {
+    padding: 14px 16px;
+    border-radius: 18px;
+    gap: 6px;
+  }
+
+  .stat-card strong {
+    font-size: 1.5rem;
+  }
+
+  .stat-card span {
+    font-size: 0.8rem;
+  }
+
+  .category-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .category-pill {
+    padding: 12px;
+    border-radius: 16px;
+    gap: 8px;
+  }
+
+  .category-pill img,
+  .icon-fallback {
+    width: 28px;
+    height: 28px;
+  }
+
+  .category-pill span {
+    font-size: 0.85rem;
+  }
+
+  .location-card {
+    padding: 12px 14px;
+  }
+
+  .worker-grid {
     grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .worker-card {
+    border-radius: 18px;
+    padding: 14px;
+    gap: 12px;
+  }
+
+  .worker-topline {
+    flex-direction: row;
+    align-items: flex-start;
+  }
+
+  .worker-topline h3 {
+    font-size: 1rem;
+  }
+
+  .worker-topline p {
+    font-size: 0.85rem;
+  }
+
+  .verified-chip {
+    font-size: 0.75rem;
+    padding: 5px 9px;
+    white-space: nowrap;
+  }
+
+  .meta-row {
+    font-size: 0.85rem;
+  }
+
+  .action-row {
+    gap: 8px;
+  }
+
+  .action-button {
+    padding: 13px 12px;
+    font-size: 0.95rem;
+  }
+
+  .profile-link {
+    padding: 11px;
+    font-size: 0.85rem;
+  }
+
+  .section-heading h2 {
+    font-size: 1.1rem;
+  }
+
+  .section-heading p {
+    font-size: 0.85rem;
+  }
+
+  .back-button {
+    margin-bottom: 14px;
+    font-size: 0.9rem;
+  }
+
+  .detail-main h2 {
+    font-size: 1.3rem;
+  }
+
+  .star-btn {
+    font-size: 2.4rem;
+  }
+
+  .submit-button {
+    padding: 15px;
+    font-size: 1rem;
+  }
+
+  .pagination-row {
+    gap: 10px;
+  }
+
+  .pagination-row .ghost-button {
+    width: auto;
+    padding: 10px 14px;
   }
 }
 
@@ -614,6 +778,18 @@ h1 {
   .two-up,
   .three-up {
     grid-template-columns: 1fr;
+  }
+
+  .submission-form input,
+  .submission-form select,
+  .submission-form textarea {
+    padding: 13px 14px;
+    font-size: 1rem;
+    border-radius: 14px;
+  }
+
+  .submission-steps p {
+    font-size: 0.9rem;
   }
 }
 
