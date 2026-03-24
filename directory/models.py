@@ -40,6 +40,8 @@ class Worker(models.Model):
     location = models.ForeignKey(Location, on_delete=models.CASCADE, related_name="workers")
     is_verified = models.BooleanField(default=False)  # Used to highlight trusted listings.
     availability_status = models.BooleanField(default=True)
+    call_clicks = models.PositiveIntegerField(default=0)
+    whatsapp_clicks = models.PositiveIntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -147,6 +149,7 @@ class WorkerSubmission(models.Model):
 class Rating(models.Model):
     worker = models.ForeignKey(Worker, on_delete=models.CASCADE, related_name="ratings")
     rating = models.IntegerField(choices=[(i, i) for i in range(1, 6)])
+    client_ip = models.CharField(max_length=45, blank=True, db_index=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

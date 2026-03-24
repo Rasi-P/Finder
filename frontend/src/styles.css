@@ -992,6 +992,30 @@ h1 {
   margin-bottom: 20px;
 }
 
+.submission-status-panel {
+  margin: 0 0 20px;
+  padding: 16px 18px;
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--panel-strong) 90%, var(--sun));
+  border: 1px solid var(--line);
+}
+
+.submission-status-panel .status-heading {
+  font-size: 1.05rem;
+  margin: 0 0 6px;
+}
+
+.submission-status-panel .status-phone-note {
+  font-size: 0.9rem;
+  color: var(--muted);
+  margin: 0 0 12px;
+  line-height: 1.5;
+}
+
+.submission-status-panel .ghost-button {
+  margin-top: 8px;
+}
+
 @media (max-width: 1024px) {
   .join-grid {
     grid-template-columns: 1fr;

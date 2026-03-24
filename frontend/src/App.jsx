@@ -1,7 +1,8 @@
-import { startTransition, useDeferredValue, useEffect, useState } from "react";
+import { startTransition, useCallback, useDeferredValue, useEffect, useState } from "react";
 import { Link, Route, Routes, useNavigate, useParams } from "react-router-dom";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://127.0.0.1:8000/api";
+const WORKER_PHONE_STORAGE_KEY = "finder_worker_phone";
 
 const translations = {
   en: {
@@ -63,6 +64,26 @@ const translations = {
     serviceDescription: "Service description",
     noDescription: "No description provided.",
     langToggle: "മലയാളം",
+    statusTitle: "Your listing status",
+    statusPending: "Pending approval — we are reviewing your details.",
+    statusApproved: "Approved — your listing is verified in the directory.",
+    statusRejected: "Not approved — if this looks wrong, try submitting again or contact support.",
+    statusRefresh: "Refresh status",
+    statusHint: "We remember the number you used last so you can check back after refresh.",
+    statusLookupError: "Could not load status for this number.",
+    viewOrEditListing: "View or update your listing →",
+    editListing: "Update my listing",
+    editListingHint: "Enter the phone number you registered with. We use it instead of a password.",
+    editPhoneConfirm: "Registered phone (verification)",
+    saveListing: "Save changes",
+    listingUpdated: "Your listing was updated.",
+    listingUpdateError: "Could not update. Check that your phone matches this listing.",
+    removeListing: "Remove my listing",
+    removeListingHint: "This removes your contact from the public directory.",
+    deleteConfirmPhone: "Your phone number to confirm",
+    deleteListing: "Delete my listing",
+    listingDeleteError: "Could not delete. Check your phone number.",
+    cancelEdit: "Close",
   },
   ml: {
     brand: "Finder",
@@ -123,6 +144,26 @@ const translations = {
     serviceDescription: "സേവന വിവരണം",
     noDescription: "വിവരണം നൽകിയിട്ടില്ല.",
     langToggle: "English",
+    statusTitle: "നിങ്ങളുടെ ലിസ്റ്റിംഗ് നില",
+    statusPending: "അംഗീകാരത്തിനായി കാത്തിരിക്കുന്നു — ഞങ്ങൾ നിങ്ങളുടെ വിവരങ്ങൾ പരിശോധിക്കുന്നു.",
+    statusApproved: "അംഗീകരിച്ചു — നിങ്ങളുടെ ലിസ്റ്റിംഗ് ഡയറക്ടറിയിൽ സ്ഥിരീകരിച്ചു.",
+    statusRejected: "അംഗീകരിച്ചില്ല — തെറ്റാണെന്ന് തോന്നുന്നുവെങ്കിൽ വീണ്ടும் സമർപ്പിക്കുക അല്ലെങ്കിൽ പിന്തുണയുമായി ബന്ധപ്പെടുക.",
+    statusRefresh: "നില പുതുക്കുക",
+    statusHint: "നിങ്ങൾ അവസാനം ഉപയോഗിച്ച നമ്പർ ഞങ്ങൾ ഓർക്കുന്നു; പുതുക്കിയതിന് ശേഷവും പരിശോധിക്കാം.",
+    statusLookupError: "ഈ നമ്പറിനായുള്ള നില ലോഡ് ചെയ്യാൻ കഴിഞ്ഞില്ല.",
+    viewOrEditListing: "ലിസ്റ്റിംഗ് കാണുക അല്ലെങ്കിൽ നവീകരിക്കുക →",
+    editListing: "എന്റെ ലിസ്റ്റിംഗ് നവീകരിക്കുക",
+    editListingHint: "രജിസ്റ്റർ ചെയ്ത ഫോൺ നമ്പർ നൽകുക. പാസ്‌വേഡിന് പകരം ഇത് ഉപയോഗിക്കുന്നു.",
+    editPhoneConfirm: "രജിസ്റ്റർ ചെയ്ത ഫോൺ (സ്ഥിരീകരണം)",
+    saveListing: "മാറ്റങ്ങൾ സംരക്ഷിക്കുക",
+    listingUpdated: "ലിസ്റ്റിംഗ് പുതുക്കി.",
+    listingUpdateError: "പുതുക്കാൻ കഴിഞ്ഞില്ല. ഫോൺ ഈ ലിസ്റ്റിംഗുമായി പൊരുത്തപ്പെടുന്നുവെന്ന് പരിശോധിക്കുക.",
+    removeListing: "എന്റെ ലിസ്റ്റിംഗ് നീക്കം ചെയ്യുക",
+    removeListingHint: "പൊതു ഡയറക്ടറിയിൽ നിന്ന് നിങ്ങളുടെ കോൺടാക്റ്റ് നീക്കം ചെയ്യും.",
+    deleteConfirmPhone: "സ്ഥിരീകരിക്കാൻ നിങ്ങളുടെ ഫോൺ",
+    deleteListing: "ലിസ്റ്റിംഗ് ഡിലീറ്റ് ചെയ്യുക",
+    listingDeleteError: "ഡിലീറ്റ് ചെയ്യാൻ കഴിഞ്ഞില്ല. ഫോൺ പരിശോധിക്കുക.",
+    cancelEdit: "അടയ്ക്കുക",
   },
 };
 
@@ -168,6 +209,10 @@ async function requestJson(path, { method = "GET", params, body, signal } = {}) 
     signal,
   });
 
+  if (response.status === 204) {
+    return null;
+  }
+
   let payload = null;
   try {
     payload = await response.json();
@@ -178,6 +223,25 @@ async function requestJson(path, { method = "GET", params, body, signal } = {}) 
   }
 
   return payload;
+}
+
+function trackEngagement(path) {
+  return fetch(`${API_BASE_URL}${path}`, {
+    method: "POST",
+    headers: { Accept: "application/json" },
+  }).catch(() => {});
+}
+
+function trackCallThenNavigate(workerId, telUrl) {
+  void trackEngagement(`/workers/${workerId}/track-call/`).finally(() => {
+    window.location.href = telUrl;
+  });
+}
+
+function trackWhatsAppThenOpen(workerId, waUrl) {
+  void trackEngagement(`/workers/${workerId}/track-whatsapp/`).finally(() => {
+    window.open(waUrl, "_blank", "noopener,noreferrer");
+  });
 }
 
 function App() {
@@ -366,8 +430,8 @@ function HomePage({
                 </div>
                 <div className="meta-row"><span>{worker.average_rating >= 4.5 ? "🔥 Top Rated" : worker.average_rating ? `${worker.average_rating}/5` : text.newBadge}</span><span className={worker.availability_status ? "status available" : "status unavailable"}>{worker.availability_status ? text.available : text.unavailable}</span></div>
                 <div className="action-row">
-                  <a href={worker.call_url} className="action-button call-button">{text.call}</a>
-                  <a href={worker.whatsapp_url} className="action-button whatsapp-button" target="_blank" rel="noreferrer">{text.whatsapp}</a>
+                  <button type="button" className="action-button call-button" onClick={() => trackCallThenNavigate(worker.id, worker.call_url)}>{text.call}</button>
+                  <button type="button" className="action-button whatsapp-button" onClick={() => trackWhatsAppThenOpen(worker.id, worker.whatsapp_url)}>{text.whatsapp}</button>
                 </div>
                 <Link to={`/workers/${worker.id}`} className="profile-link">{text.viewProfile}</Link>
               </article>
@@ -391,10 +455,44 @@ function JoinPage({ text, toggleLang }) {
   const [categories, setCategories] = useState([]);
   const [submission, setSubmission] = useState(emptySubmission);
   const [submissionState, setSubmissionState] = useState({ loading: false, error: "", success: "" });
+  const [trackedPhone, setTrackedPhone] = useState(() =>
+    typeof localStorage !== "undefined" ? localStorage.getItem(WORKER_PHONE_STORAGE_KEY) || "" : ""
+  );
+  const [submissionStatus, setSubmissionStatus] = useState({
+    loading: false,
+    error: "",
+    data: null,
+  });
+
+  const loadSubmissionStatus = useCallback(
+    async (phone) => {
+      const trimmed = (phone || "").trim();
+      if (!trimmed) {
+        setSubmissionStatus({ loading: false, error: "", data: null });
+        return;
+      }
+      setSubmissionStatus((s) => ({ ...s, loading: true, error: "" }));
+      try {
+        const data = await requestJson("/submission-status/", { params: { phone: trimmed } });
+        setSubmissionStatus({ loading: false, error: "", data });
+      } catch (error) {
+        setSubmissionStatus({
+          loading: false,
+          error: error.message || text.statusLookupError,
+          data: null,
+        });
+      }
+    },
+    [text.statusLookupError]
+  );
 
   useEffect(() => {
     requestJson("/categories/").then(setCategories).catch(() => {});
   }, []);
+
+  useEffect(() => {
+    loadSubmissionStatus(trackedPhone);
+  }, [trackedPhone, loadSubmissionStatus]);
 
   function updateSubmission(key, value) {
     setSubmission((current) => ({ ...current, [key]: value }));
@@ -402,6 +500,7 @@ function JoinPage({ text, toggleLang }) {
 
   async function handleSubmit(event) {
     event.preventDefault();
+    const phoneUsed = submission.phone_number;
     try {
       setSubmissionState({ loading: true, error: "", success: "" });
       const response = await requestJson("/worker-submissions/", {
@@ -409,11 +508,25 @@ function JoinPage({ text, toggleLang }) {
         body: { ...submission, category: Number(submission.category) },
       });
       setSubmission(emptySubmission);
+      const phoneForTracking = (response.phone_number || phoneUsed).trim();
+      if (phoneForTracking) {
+        localStorage.setItem(WORKER_PHONE_STORAGE_KEY, phoneForTracking);
+        setTrackedPhone(phoneForTracking);
+      }
       setSubmissionState({ loading: false, error: "", success: response.message || text.submitSuccess });
     } catch (error) {
       setSubmissionState({ loading: false, error: error.message || text.submitDefaultError, success: "" });
     }
   }
+
+  const statusMessage =
+    submissionStatus.data?.status === "pending"
+      ? text.statusPending
+      : submissionStatus.data?.status === "approved"
+        ? text.statusApproved
+        : submissionStatus.data?.status === "rejected"
+          ? text.statusRejected
+          : "";
 
   return (
     <main className="app-shell">
@@ -421,10 +534,39 @@ function JoinPage({ text, toggleLang }) {
         <button className="ghost-button back-button" onClick={() => navigate("/")} type="button">{text.backToHome}</button>
         <button className="lang-toggle" onClick={toggleLang} type="button">{text.langToggle}</button>
       </div>
+      <div className="join-grid">
         <div className="panel join-copy">
           <div className="brand-lockup"><span className="brand-mark">F</span><span className="brand-name">{text.brand}</span></div>
           <h2>{text.joinTitle}</h2>
           <p>{text.joinHint}</p>
+          {trackedPhone ? (
+            <div className="submission-status-panel">
+              <h3 className="status-heading">{text.statusTitle}</h3>
+              <p className="status-phone-note">{text.statusHint}</p>
+              {submissionStatus.loading ? <p className="state-copy">{text.loading}</p> : null}
+              {submissionStatus.error ? <p className="form-message error">{submissionStatus.error}</p> : null}
+              {!submissionStatus.loading && submissionStatus.data ? (
+                <p className={`form-message ${submissionStatus.data.status === "approved" ? "success" : submissionStatus.data.status === "rejected" ? "error" : ""}`}>
+                  {statusMessage}
+                </p>
+              ) : null}
+              <button
+                className="ghost-button"
+                type="button"
+                disabled={submissionStatus.loading || !trackedPhone}
+                onClick={() => loadSubmissionStatus(trackedPhone)}
+              >
+                {text.statusRefresh}
+              </button>
+              {submissionStatus.data?.worker_id ? (
+                <p style={{ marginTop: 12 }}>
+                  <Link to={`/workers/${submissionStatus.data.worker_id}`} className="profile-link">
+                    {text.viewOrEditListing}
+                  </Link>
+                </p>
+              ) : null}
+            </div>
+          ) : null}
           <div className="submission-steps">
             <p>1. Fill in your contact and service details.</p>
             <p>2. Your request stays pending for review.</p>
@@ -451,6 +593,7 @@ function JoinPage({ text, toggleLang }) {
             <button className="submit-button" disabled={submissionState.loading} type="submit">{submissionState.loading ? text.submitting : text.submit}</button>
           </form>
         </div>
+      </div>
     </main>
   );
 }
@@ -462,19 +605,95 @@ function WorkerDetailPage({ text, toggleLang }) {
   const [state, setState] = useState({ loading: true, error: "" });
   const [rating, setRating] = useState(0);
   const [ratingState, setRatingState] = useState({ loading: false, error: "", success: "" });
+  const [editOpen, setEditOpen] = useState(false);
+  const [categories, setCategories] = useState([]);
+  const [ownerForm, setOwnerForm] = useState(null);
+  const [ownerState, setOwnerState] = useState({ loading: false, error: "", success: "" });
+  const [deletePhone, setDeletePhone] = useState("");
+  const [deleteState, setDeleteState] = useState({ loading: false, error: "" });
 
   useEffect(() => {
     const controller = new AbortController();
-    requestJson(`/workers/${id}/`, { signal: controller.signal })
+    const stored = typeof localStorage !== "undefined" ? localStorage.getItem(WORKER_PHONE_STORAGE_KEY) || "" : "";
+    const params = stored ? { phone: stored } : {};
+    requestJson(`/workers/${id}/`, { params, signal: controller.signal })
       .then((data) => {
         setWorker(data);
         setState({ loading: false, error: "" });
       })
       .catch((error) => {
-        if (error.name !== "AbortError") setState({ loading: false, error: text.error });
+        if (error.name !== "AbortError") setState({ loading: false, error: error.message || text.error });
       });
     return () => controller.abort();
   }, [id]);
+
+  useEffect(() => {
+    if (!editOpen) return;
+    requestJson("/categories/").then(setCategories).catch(() => {});
+  }, [editOpen]);
+
+  function openOwnerEdit() {
+    if (!worker) return;
+    const stored = typeof localStorage !== "undefined" ? localStorage.getItem(WORKER_PHONE_STORAGE_KEY) || "" : "";
+    setOwnerForm({
+      phoneConfirm: stored,
+      name: worker.name,
+      category: String(worker.category.id),
+      availability_status: worker.availability_status,
+      city: worker.location.city,
+      area_name: worker.location.area_name,
+      pincode: worker.location.pincode,
+      service_description: worker.service_description || "",
+    });
+    setDeletePhone(stored);
+    setOwnerState({ loading: false, error: "", success: "" });
+    setDeleteState({ loading: false, error: "" });
+    setEditOpen(true);
+  }
+
+  function updateOwnerForm(key, value) {
+    setOwnerForm((current) => (current ? { ...current, [key]: value } : current));
+  }
+
+  async function handleOwnerSave(event) {
+    event.preventDefault();
+    if (!ownerForm) return;
+    try {
+      setOwnerState({ loading: true, error: "", success: "" });
+      const data = await requestJson(`/workers/${id}/self/`, {
+        method: "PATCH",
+        body: {
+          phone_number: ownerForm.phoneConfirm.trim(),
+          name: ownerForm.name,
+          category: Number(ownerForm.category),
+          availability_status: ownerForm.availability_status,
+          city: ownerForm.city,
+          area_name: ownerForm.area_name,
+          pincode: ownerForm.pincode,
+          service_description: ownerForm.service_description,
+        },
+      });
+      setWorker(data);
+      setOwnerState({ loading: false, error: "", success: text.listingUpdated });
+    } catch (error) {
+      setOwnerState({ loading: false, error: error.message || text.listingUpdateError, success: "" });
+    }
+  }
+
+  async function handleOwnerDelete(event) {
+    event.preventDefault();
+    try {
+      setDeleteState({ loading: true, error: "" });
+      await requestJson(`/workers/${id}/self/`, {
+        method: "DELETE",
+        body: { phone_number: deletePhone.trim() },
+      });
+      localStorage.removeItem(WORKER_PHONE_STORAGE_KEY);
+      navigate("/");
+    } catch (error) {
+      setDeleteState({ loading: false, error: error.message || text.listingDeleteError });
+    }
+  }
 
   async function handleRating(event) {
     event.preventDefault();
@@ -518,8 +737,13 @@ function WorkerDetailPage({ text, toggleLang }) {
             </span>
           </div>
           <div className="action-row">
-            <a href={worker.call_url} className="action-button call-button">{text.call}</a>
-            <a href={worker.whatsapp_url} className="action-button whatsapp-button" target="_blank" rel="noreferrer">{text.whatsapp}</a>
+            <button type="button" className="action-button call-button" onClick={() => trackCallThenNavigate(worker.id, worker.call_url)}>{text.call}</button>
+            <button type="button" className="action-button whatsapp-button" onClick={() => trackWhatsAppThenOpen(worker.id, worker.whatsapp_url)}>{text.whatsapp}</button>
+          </div>
+          <div style={{ marginTop: 16 }}>
+            <button className="ghost-button" type="button" onClick={() => (editOpen ? setEditOpen(false) : openOwnerEdit())}>
+              {editOpen ? text.cancelEdit : text.editListing}
+            </button>
           </div>
         </div>
 
@@ -529,6 +753,40 @@ function WorkerDetailPage({ text, toggleLang }) {
             {worker.service_description || text.noDescription}
           </p>
         </div>
+
+        {editOpen && ownerForm ? (
+          <div className="panel submission-form">
+            <h3>{text.editListing}</h3>
+            <p className="detail-description" style={{ marginBottom: 16 }}>{text.editListingHint}</p>
+            <form className="form-grid" onSubmit={handleOwnerSave}>
+              <label><span>{text.editPhoneConfirm}</span><input required value={ownerForm.phoneConfirm} onChange={(e) => updateOwnerForm("phoneConfirm", e.target.value)} autoComplete="tel" /></label>
+              <div className="form-grid two-up">
+                <label><span>{text.submissionName}</span><input required value={ownerForm.name} onChange={(e) => updateOwnerForm("name", e.target.value)} /></label>
+                <label><span>{text.submissionCategory}</span><select required value={ownerForm.category} onChange={(e) => updateOwnerForm("category", e.target.value)}><option value="">{text.selectCategory}</option>{categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select></label>
+              </div>
+              <label className="checkbox-row"><input type="checkbox" checked={ownerForm.availability_status} onChange={(e) => updateOwnerForm("availability_status", e.target.checked)} /><span>{text.submissionAvailability}</span></label>
+              <div className="form-grid three-up">
+                <label><span>{text.submissionCity}</span><input required value={ownerForm.city} onChange={(e) => updateOwnerForm("city", e.target.value)} /></label>
+                <label><span>{text.submissionArea}</span><input required value={ownerForm.area_name} onChange={(e) => updateOwnerForm("area_name", e.target.value)} /></label>
+                <label><span>{text.submissionPincode}</span><input required value={ownerForm.pincode} onChange={(e) => updateOwnerForm("pincode", e.target.value)} /></label>
+              </div>
+              <label><span>{text.submissionDescription}</span><textarea rows={3} value={ownerForm.service_description} onChange={(e) => updateOwnerForm("service_description", e.target.value)} /></label>
+              {ownerState.error ? <p className="form-message error">{ownerState.error}</p> : null}
+              {ownerState.success ? <p className="form-message success">{ownerState.success}</p> : null}
+              <button className="submit-button" disabled={ownerState.loading} type="submit">{ownerState.loading ? text.submitting : text.saveListing}</button>
+            </form>
+            <hr style={{ margin: "24px 0", border: 0, borderTop: "1px solid var(--line)" }} />
+            <h3>{text.removeListing}</h3>
+            <p className="detail-description">{text.removeListingHint}</p>
+            <form onSubmit={handleOwnerDelete}>
+              <label><span>{text.deleteConfirmPhone}</span><input required value={deletePhone} onChange={(e) => setDeletePhone(e.target.value)} autoComplete="tel" /></label>
+              {deleteState.error ? <p className="form-message error">{deleteState.error}</p> : null}
+              <button className="submit-button" style={{ background: "var(--warn)", marginTop: 12 }} disabled={deleteState.loading} type="submit">
+                {deleteState.loading ? text.submitting : text.deleteListing}
+              </button>
+            </form>
+          </div>
+        ) : null}
 
         <div className="panel">
           <h3>{text.rateWorker}</h3>

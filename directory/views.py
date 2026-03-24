@@ -1,17 +1,33 @@
-from django.db.models import Avg, Count, Q
+from django.db.models import Avg, Count, F, Q
+from django.shortcuts import get_object_or_404
 from rest_framework import status
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.generics import CreateAPIView, ListAPIView, RetrieveAPIView
 from rest_framework.response import Response
+from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 
-from .models import Category, Location, Rating, Worker, WorkerSubmission
+from .models import Category, Location, Rating, Worker, WorkerSubmission, normalize_phone_number
 from .serializers import (
     CategorySerializer,
     LocationSerializer,
     RatingSerializer,
+    WorkerSelfUpdateSerializer,
     WorkerSerializer,
     WorkerSubmissionSerializer,
 )
+
+
+def verified_worker_count():
+    """Count workers linked to this category/location that are admin-verified."""
+    return Count("workers", filter=Q(workers__is_verified=True), distinct=True)
+
+
+def get_client_ip(request):
+    forwarded = request.META.get("HTTP_X_FORWARDED_FOR")
+    if forwarded:
+        return forwarded.split(",")[0].strip()
+    return (request.META.get("REMOTE_ADDR") or "").strip()
 
 
 def parse_bool(value):
@@ -31,14 +47,18 @@ class CategoryListAPIView(ListAPIView):
     pagination_class = None
 
     def get_queryset(self):
-        return Category.objects.annotate(worker_count=Count("workers", distinct=True))
+        return Category.objects.annotate(worker_count=verified_worker_count())
 
 
 class LocationListAPIView(ListAPIView):
     serializer_class = LocationSerializer
 
     def get_queryset(self):
-        queryset = Location.objects.all()
+        queryset = (
+            Location.objects.annotate(worker_count=verified_worker_count())
+            .filter(worker_count__gt=0)
+            .order_by("city", "area_name")
+        )
         q = self.request.query_params.get("q")
         pincode = self.request.query_params.get("pincode")
 
@@ -62,6 +82,7 @@ class WorkerListAPIView(ListAPIView):
     def get_queryset(self):
         queryset = (
             Worker.objects.select_related("category", "location")
+            .filter(is_verified=True)
             .annotate(average_rating=Avg("ratings__rating"))
         )
 
@@ -128,19 +149,166 @@ class WorkerDetailAPIView(RetrieveAPIView):
             .annotate(average_rating=Avg("ratings__rating"))
         )
 
+    def get_object(self):
+        queryset = self.get_queryset()
+        obj = get_object_or_404(queryset, pk=self.kwargs["pk"])
+        if obj.is_verified:
+            return obj
+        raw = (self.request.query_params.get("phone") or self.request.query_params.get("phone_number") or "").strip()
+        if not raw:
+            raise PermissionDenied(
+                detail=(
+                    "This listing is not public until verified. "
+                    "Use ?phone= with your registered number to view your own profile."
+                )
+            )
+        if normalize_phone_number(raw) != obj.normalized_phone_number:
+            raise PermissionDenied(detail="Phone number does not match this listing.")
+        return obj
+
+
+def verify_worker_ownership(request, worker):
+    raw = (request.data.get("phone") or request.data.get("phone_number") or "").strip()
+    if not raw:
+        return False, Response(
+            {
+                "detail": "Include your registered number as `phone` or `phone_number` in the JSON body.",
+            },
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    normalized = normalize_phone_number(raw)
+    if len(normalized) < 10 or len(normalized) > 15:
+        return False, Response(
+            {"detail": "Enter a valid phone or WhatsApp number."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    if normalized != worker.normalized_phone_number:
+        return False, Response(
+            {"detail": "Phone number does not match this listing."},
+            status=status.HTTP_403_FORBIDDEN,
+        )
+    return True, None
+
+
+class WorkerSelfServiceAPIView(APIView):
+    """PATCH / DELETE own worker row; ownership proven by matching phone in JSON body (no login)."""
+
+    def patch(self, request, pk):
+        worker = Worker.objects.filter(pk=pk).first()
+        if not worker:
+            return Response({"detail": "Worker not found."}, status=status.HTTP_404_NOT_FOUND)
+        ok, err = verify_worker_ownership(request, worker)
+        if not ok:
+            return err
+
+        payload = {k: request.data[k] for k in request.data if k not in ("phone", "phone_number")}
+        if not payload:
+            return Response(
+                {
+                    "detail": "No fields to update. Send name, category, availability_status, "
+                    "location (city, area_name, pincode together), and/or service_description.",
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        serializer = WorkerSelfUpdateSerializer(worker, data=payload, partial=True)
+        serializer.is_valid(raise_exception=True)
+        updated = serializer.save()
+        out = (
+            Worker.objects.select_related("category", "location")
+            .annotate(average_rating=Avg("ratings__rating"))
+            .get(pk=updated.pk)
+        )
+        return Response(WorkerSerializer(out).data)
+
+    def delete(self, request, pk):
+        worker = Worker.objects.filter(pk=pk).first()
+        if not worker:
+            return Response({"detail": "Worker not found."}, status=status.HTTP_404_NOT_FOUND)
+        ok, err = verify_worker_ownership(request, worker)
+        if not ok:
+            return err
+        worker.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class WorkerTrackCallAPIView(APIView):
+    def post(self, request, pk):
+        updated = Worker.objects.filter(pk=pk).update(call_clicks=F("call_clicks") + 1)
+        if not updated:
+            return Response({"detail": "Worker not found."}, status=status.HTTP_404_NOT_FOUND)
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class WorkerTrackWhatsAppAPIView(APIView):
+    def post(self, request, pk):
+        updated = Worker.objects.filter(pk=pk).update(whatsapp_clicks=F("whatsapp_clicks") + 1)
+        if not updated:
+            return Response({"detail": "Worker not found."}, status=status.HTTP_404_NOT_FOUND)
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
 
 class RatingCreateAPIView(APIView):
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "ratings"
+
     def post(self, request, pk):
         worker = Worker.objects.filter(pk=pk).first()
         if not worker:
             return Response({"detail": "Worker not found."}, status=status.HTTP_404_NOT_FOUND)
+        client_ip = get_client_ip(request)
+        if client_ip and Rating.objects.filter(worker=worker, client_ip=client_ip).exists():
+            return Response(
+                {"detail": "You have already submitted a rating for this worker from this device/network."},
+                status=status.HTTP_409_CONFLICT,
+            )
         serializer = RatingSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        serializer.save(worker=worker)
+        serializer.save(worker=worker, client_ip=client_ip)
         avg = worker.ratings.aggregate(avg=Avg("rating"))["avg"]
         return Response(
             {"average_rating": round(avg, 1) if avg else None, **serializer.data},
             status=status.HTTP_201_CREATED,
+        )
+
+
+class SubmissionStatusAPIView(APIView):
+    """Look up latest worker self-submission by normalized phone (no login)."""
+
+    def get(self, request):
+        raw = (request.query_params.get("phone") or request.query_params.get("phone_number") or "").strip()
+        if not raw:
+            return Response(
+                {"detail": "Query parameter 'phone' is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        normalized = normalize_phone_number(raw)
+        if len(normalized) < 10 or len(normalized) > 15:
+            return Response(
+                {"detail": "Enter a valid phone or WhatsApp number."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        submission = (
+            WorkerSubmission.objects.filter(phone_number=normalized)
+            .select_related("approved_worker")
+            .order_by("-created_at")
+            .first()
+        )
+        if not submission:
+            return Response(
+                {"detail": "No submission found for this number."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        worker = submission.approved_worker
+        return Response(
+            {
+                "status": submission.status,
+                "is_verified": worker.is_verified if worker else False,
+                "worker_id": worker.id if worker else None,
+                "submission_id": submission.id,
+            }
         )
 
 
@@ -176,6 +344,8 @@ class WorkerSubmissionCreateAPIView(CreateAPIView):
         payload = {
             "id": submission.id,
             "status": submission.status,
+            "phone_number": submission.phone_number,
+            "worker_id": worker.id,
             "message": "Your profile is now live! It will be marked as verified after review.",
         }
         headers = self.get_success_headers(payload)
@@ -184,8 +354,12 @@ class WorkerSubmissionCreateAPIView(CreateAPIView):
 
 class HomeDataAPIView(APIView):
     def get(self, request):
-        categories = Category.objects.annotate(worker_count=Count("workers", distinct=True))
-        locations = Location.objects.annotate(worker_count=Count("workers", distinct=True))
+        categories = Category.objects.annotate(worker_count=verified_worker_count())
+        locations = (
+            Location.objects.annotate(worker_count=verified_worker_count())
+            .filter(worker_count__gt=0)
+            .order_by("city", "area_name")
+        )
         featured_workers = (
             Worker.objects.select_related("category", "location")
             .annotate(average_rating=Avg("ratings__rating"))
