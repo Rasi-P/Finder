@@ -10,8 +10,10 @@ def normalize_phone_number(value):
 
 class Location(models.Model):
     city = models.CharField(max_length=100)
+    city_ml = models.CharField(max_length=100, blank=True, default="")
     area_name = models.CharField(max_length=150)
-    pincode = models.CharField(max_length=10, db_index=True)  # Indexed for fast hyper-local search
+    area_name_ml = models.CharField(max_length=150, blank=True, default="")
+    pincode = models.CharField(max_length=10, db_index=True)
 
     class Meta:
         unique_together = ("area_name", "pincode")
@@ -22,8 +24,10 @@ class Location(models.Model):
 
 
 class Category(models.Model):
-    name = models.CharField(max_length=100, unique=True)
-    icon_url = models.URLField(max_length=500, blank=True, null=True)  # For the frontend UI
+    name = models.CharField(max_length=100, unique=True)  # English name, used for filtering
+    name_ml = models.CharField(max_length=100, blank=True, default="")  # Malayalam name
+    icon_url = models.URLField(max_length=500, blank=True, null=True)
+    search_keywords = models.CharField(max_length=300, blank=True, default="")
 
     class Meta:
         verbose_name_plural = "Categories"
@@ -34,7 +38,8 @@ class Category(models.Model):
 
 
 class Worker(models.Model):
-    name = models.CharField(max_length=200)
+    name = models.CharField(max_length=200)  # English/transliterated name
+    name_ml = models.CharField(max_length=200, blank=True, default="")  # Malayalam name
     phone_number = models.CharField(max_length=15, unique=True)  # Unique identifier
     category = models.ForeignKey(Category, on_delete=models.CASCADE, related_name="workers")
     location = models.ForeignKey(Location, on_delete=models.CASCADE, related_name="workers")

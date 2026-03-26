@@ -169,6 +169,7 @@ const translations = {
 
 const emptySubmission = {
   name: "",
+  name_ml: "",
   phone_number: "",
   category: "",
   city: "",
@@ -322,9 +323,9 @@ function App() {
 
   return (
     <Routes>
-      <Route path="/" element={<HomePage text={text} toggleLang={toggleLang} homeData={homeData} workers={workers} pagination={pagination} filters={filters} updateFilter={updateFilter} homeState={homeState} workerState={workerState} setFilters={setFilters} locationSuggestions={locationSuggestions} setLocationSuggestions={setLocationSuggestions} />} />
-      <Route path="/join" element={<JoinPage text={text} toggleLang={toggleLang} />} />
-      <Route path="/workers/:id" element={<WorkerDetailPage text={text} toggleLang={toggleLang} />} />
+      <Route path="/" element={<HomePage lang={lang} text={text} toggleLang={toggleLang} homeData={homeData} workers={workers} pagination={pagination} filters={filters} updateFilter={updateFilter} homeState={homeState} workerState={workerState} setFilters={setFilters} locationSuggestions={locationSuggestions} setLocationSuggestions={setLocationSuggestions} />} />
+      <Route path="/join" element={<JoinPage lang={lang} text={text} toggleLang={toggleLang} />} />
+      <Route path="/workers/:id" element={<WorkerDetailPage lang={lang} text={text} toggleLang={toggleLang} />} />
     </Routes>
   );
 }
@@ -352,7 +353,7 @@ function MobileNav({ text, toggleLang }) {
 }
 
 function HomePage({
-  text, toggleLang, homeData, workers, pagination, filters, updateFilter, homeState, workerState,
+  lang, text, toggleLang, homeData, workers, pagination, filters, updateFilter, homeState, workerState,
   setFilters, locationSuggestions, setLocationSuggestions,
 }) {
   return (
@@ -368,7 +369,7 @@ function HomePage({
           <p>{text.subtitle}</p>
         </div>
         <div className="search-card">
-          <label><span>{text.searchLabel}</span><input value={filters.search} onChange={(e) => updateFilter("search", e.target.value)} placeholder="Plumber, cleaner, Niyas..." /></label>
+          <label><span>{text.searchLabel}</span><input value={filters.search} onChange={(e) => updateFilter("search", e.target.value)} placeholder={lang === "ml" ? "പ്ലംബർ, ക്ലീനർ, നിയാസ്..." : "Plumber, cleaner, Niyas..."} /></label>
           <div className="location-autocomplete">
             <label>
               <span>{text.pincodeLabel}</span>
@@ -379,7 +380,7 @@ function HomePage({
                 {locationSuggestions.map((loc) => (
                   <li key={loc.id}>
                     <button type="button" onClick={() => { updateFilter("pincode", loc.pincode); setLocationSuggestions([]); }}>
-                      <span>{loc.display_name}</span><strong>{loc.pincode}</strong>
+                      <span>{lang === "ml" ? (loc.display_name_ml || loc.display_name) : loc.display_name}</span><strong>{loc.pincode}</strong>
                     </button>
                   </li>
                 ))}
@@ -410,7 +411,7 @@ function HomePage({
             {homeData.categories.map((category) => (
               <button key={category.id} className={filters.category === category.name ? "category-pill active" : "category-pill"} onClick={() => updateFilter("category", category.name)} type="button">
                 {category.icon_url ? <img src={category.icon_url} alt="" onError={(e) => { e.target.style.display='none'; e.target.nextSibling.style.display='inline-grid'; }} /> : null}<span className="icon-fallback" style={category.icon_url ? {display:'none'} : {}}>+</span>
-                <span>{category.name}</span>
+                <span>{lang === "ml" && category.name_ml ? category.name_ml : category.name}</span>
                 <strong>{category.worker_count}</strong>
               </button>
             ))}
@@ -421,7 +422,7 @@ function HomePage({
           <div className="location-list">
             {homeData.locations.map((location) => (
               <button key={location.id} className="location-card" onClick={() => updateFilter("pincode", location.pincode)} type="button">
-                <span>{location.display_name}</span>
+                <span>{lang === "ml" ? (location.display_name_ml || location.display_name) : location.display_name}</span>
                 <strong>{location.pincode}</strong>
               </button>
             ))}
@@ -449,7 +450,7 @@ function HomePage({
             {workers.map((worker) => (
               <article key={worker.id} className="worker-card">
                 <div className="worker-topline">
-                  <div><h3>{worker.name}</h3><p>{worker.category.name} - {worker.location.display_name}</p></div>
+                  <div><h3>{lang === "ml" && worker.name_ml ? worker.name_ml : worker.name}</h3><p>{lang === "ml" && worker.category.name_ml ? worker.category.name_ml : worker.category.name} - {lang === "ml" ? (worker.location.display_name_ml || worker.location.display_name) : worker.location.display_name}</p></div>
                   {worker.is_verified
                     ? <span className="verified-chip">{text.verified}</span>
                     : <span className="pending-chip">Pending</span>}
@@ -490,7 +491,19 @@ async function fetchPincodeData(pincode) {
   return null;
 }
 
-function JoinPage({ text, toggleLang }) {
+async function transliterate(text) {
+  try {
+    const res = await fetch(
+      `https://inputtools.google.com/request?text=${encodeURIComponent(text)}&itc=ml-t-i0-und&num=1&cp=0&cs=1&ie=utf-8&oe=utf-8`
+    );
+    const data = await res.json();
+    return data?.[1]?.[0]?.[1]?.[0] || "";
+  } catch {
+    return "";
+  }
+}
+
+function JoinPage({ lang, text, toggleLang }) {
   const navigate = useNavigate();
   const [categories, setCategories] = useState([]);
   const [submission, setSubmission] = useState(emptySubmission);
@@ -631,27 +644,28 @@ function JoinPage({ text, toggleLang }) {
             </div>
           ) : null}
           <div className="submission-steps">
-            <p>1. Fill in your contact and service details.</p>
-            <p>2. Your request stays pending for review.</p>
-            <p>3. Once approved, your listing goes live.</p>
+            <p>{lang === "ml" ? "1. നിങ്ങളുടെ വിവരങ്ങൾ പൂരിപ്പിക്കൂ." : "1. Fill in your contact and service details."}</p>
+            <p>{lang === "ml" ? "2. അവലോകനത്തിനായി കാത്തിരിക്കൂ." : "2. Your request stays pending for review."}</p>
+            <p>{lang === "ml" ? "3. അംഗീകരിച്ചാൽ ലിസ്റ്റിംഗ് ലൈവ് ആകും." : "3. Once approved, your listing goes live."}</p>
           </div>
         </div>
         <div className="panel">
           <form className="submission-form" onSubmit={handleSubmit}>
             <div className="form-grid two-up">
-              <label><span>{text.submissionName}</span><input required value={submission.name} onChange={(e) => updateSubmission("name", e.target.value)} /></label>
-              <label><span>{text.submissionPhone}</span><input required value={submission.phone_number} onChange={(e) => updateSubmission("phone_number", e.target.value)} /></label>
+              <label><span>{lang === "ml" ? "പേര്‍ (ഇംഗ്ലീഷ്)" : "Name (English)"}</span><input value={submission.name} onChange={(e) => updateSubmission("name", e.target.value)} onBlur={async (e) => { if (e.target.value && !submission.name_ml) { const ml = await transliterate(e.target.value); if (ml) updateSubmission("name_ml", ml); } }} placeholder="Niyas" /></label>
+              <label><span>{lang === "ml" ? "പേര്‍ (മലയാളം)" : "പേര്‍ (മലയാളം)"}</span><input value={submission.name_ml} onChange={(e) => updateSubmission("name_ml", e.target.value)} onBlur={async (e) => { if (e.target.value && !submission.name) { updateSubmission("name", e.target.value); } }} placeholder="നിയാസ്" /></label>
             </div>
-            <label><span>{text.submissionCategory}</span><select required value={submission.category} onChange={(e) => updateSubmission("category", e.target.value)}><option value="">{text.selectCategory}</option>{categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select></label>
+            <label><span>{text.submissionPhone}</span><input required value={submission.phone_number} onChange={(e) => updateSubmission("phone_number", e.target.value)} /></label>
+            <label><span>{text.submissionCategory}</span><select required value={submission.category} onChange={(e) => updateSubmission("category", e.target.value)}><option value="">{text.selectCategory}</option>{categories.map((c) => <option key={c.id} value={c.id}>{lang === "ml" && c.name_ml ? c.name_ml : c.name}</option>)}</select></label>
             <div className="form-grid three-up">
               <label>
                 <span>{text.submissionPincode}</span>
-                <input required value={submission.pincode} onChange={(e) => handlePincodeChange(e.target.value)} placeholder="6-digit pincode" maxLength={6} />
-                {pincodeLoading ? <span style={{fontSize:"0.8rem",color:"var(--muted)"}}>Looking up pincode...</span> : null}
+                <input required value={submission.pincode} onChange={(e) => handlePincodeChange(e.target.value)} placeholder={lang === "ml" ? "6 അക്ക പിൻകോഡ്" : "6-digit pincode"} maxLength={6} />
+                {pincodeLoading ? <span style={{fontSize:"0.8rem",color:"var(--muted)"}}>{lang === "ml" ? "പിൻകോഡ് തിരയുന്നു..." : "Looking up pincode..."}</span> : null}
               </label>
               <label>
                 <span>{text.submissionCity}</span>
-                <input required value={submission.city} readOnly style={{background:"var(--bg-deep)",cursor:"not-allowed"}} placeholder="Auto-filled" />
+                <input required value={submission.city} onChange={(e) => updateSubmission("city", e.target.value)} placeholder={lang === "ml" ? "നഗരം" : "City"} />
               </label>
               <label>
                 <span>{text.submissionArea}</span>
@@ -659,10 +673,10 @@ function JoinPage({ text, toggleLang }) {
                   ? <select required value={submission.area_name} onChange={(e) => updateSubmission("area_name", e.target.value)}>
                       {pincodeAreas.map((a) => <option key={a} value={a}>{a}</option>)}
                     </select>
-                  : <input required value={submission.area_name} readOnly style={{background:"var(--bg-deep)",cursor:"not-allowed"}} placeholder="Auto-filled" />}
+                  : <input required value={submission.area_name} onChange={(e) => updateSubmission("area_name", e.target.value)} placeholder={lang === "ml" ? "പ്രദേശം" : "Area"} />}
               </label>
             </div>
-            <label><span>{text.submissionDescription}</span><textarea rows="4" value={submission.service_description} onChange={(e) => updateSubmission("service_description", e.target.value)} placeholder="Emergency plumbing, wiring, painting, home cleaning..." /></label>
+            <label><span>{text.submissionDescription}</span><textarea rows="4" value={submission.service_description} onChange={(e) => updateSubmission("service_description", e.target.value)} placeholder={lang === "ml" ? "അടിയന്തര പ്ലംബിംഗ്, വൈയരിംഗ്, പെയിന്റിംഗ്..." : "Emergency plumbing, wiring, painting, home cleaning..."} /></label>
             <label className="checkbox-row"><input type="checkbox" checked={submission.availability_status} onChange={(e) => updateSubmission("availability_status", e.target.checked)} /><span>{text.submissionAvailability}</span></label>
             <label className="checkbox-row"><input type="checkbox" checked={submission.consent_to_contact} onChange={(e) => updateSubmission("consent_to_contact", e.target.checked)} /><span>{text.submissionConsent}</span></label>
             {submissionState.error ? <p className="form-message error">{submissionState.error}</p> : null}
@@ -675,7 +689,7 @@ function JoinPage({ text, toggleLang }) {
   );
 }
 
-function WorkerDetailPage({ text, toggleLang }) {
+function WorkerDetailPage({ lang, text, toggleLang }) {
   const { id } = useParams();
   const navigate = useNavigate();
   const [worker, setWorker] = useState(null);
@@ -873,8 +887,8 @@ function WorkerDetailPage({ text, toggleLang }) {
         <div className="panel detail-main">
           <div className="worker-topline">
             <div>
-              <h2>{worker.name}</h2>
-              <p>{worker.category.name} · {worker.location.display_name} · {worker.location.pincode}</p>
+              <h2>{lang === "ml" && worker.name_ml ? worker.name_ml : worker.name}</h2>
+              <p>{lang === "ml" && worker.category.name_ml ? worker.category.name_ml : worker.category.name} · {lang === "ml" ? (worker.location.display_name_ml || worker.location.display_name) : worker.location.display_name} · {worker.location.pincode}</p>
             </div>
             {worker.is_verified
               ? <span className="verified-chip">{text.verified}</span>
@@ -926,7 +940,7 @@ function WorkerDetailPage({ text, toggleLang }) {
               <label><span>{text.editPhoneConfirm}</span><input required value={ownerForm.phoneConfirm} onChange={(e) => updateOwnerForm("phoneConfirm", e.target.value)} autoComplete="tel" /></label>
               <div className="form-grid two-up">
                 <label><span>{text.submissionName}</span><input required value={ownerForm.name} onChange={(e) => updateOwnerForm("name", e.target.value)} /></label>
-                <label><span>{text.submissionCategory}</span><select required value={ownerForm.category} onChange={(e) => updateOwnerForm("category", e.target.value)}><option value="">{text.selectCategory}</option>{categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select></label>
+                <label><span>{text.submissionCategory}</span><select required value={ownerForm.category} onChange={(e) => updateOwnerForm("category", e.target.value)}><option value="">{text.selectCategory}</option>{categories.map((c) => <option key={c.id} value={c.id}>{lang === "ml" && c.name_ml ? c.name_ml : c.name}</option>)}</select></label>
               </div>
               <label className="checkbox-row"><input type="checkbox" checked={ownerForm.availability_status} onChange={(e) => updateOwnerForm("availability_status", e.target.checked)} /><span>{text.submissionAvailability}</span></label>
               <p style={{fontSize:"0.85rem",color:"var(--muted)",margin:"8px 0 4px",padding:"10px 12px",background:"rgba(255,182,73,0.1)",borderRadius:"10px",border:"1px solid rgba(255,182,73,0.3)"}}>

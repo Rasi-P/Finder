@@ -126,6 +126,7 @@ class WorkerListAPIView(ListAPIView):
             queryset = queryset.filter(
                 Q(name__icontains=term)
                 | Q(category__name__icontains=term)
+                | Q(category__search_keywords__icontains=term)
                 | Q(location__area_name__icontains=term)
                 | Q(location__city__icontains=term)
             )
@@ -380,10 +381,21 @@ class WorkerSubmissionCreateAPIView(CreateAPIView):
             pincode=submission.pincode.strip(),
             defaults={"city": submission.city.strip()},
         )
+
+        # Detect if name is in Malayalam script (Unicode range 0D00–0D7F)
+        def is_malayalam(text):
+            return any('\u0D00' <= c <= '\u0D7F' for c in text)
+
+        name_en = submission.name.strip()
+        name_ml = name_en if is_malayalam(name_en) else ""
+        if name_ml:
+            name_en = ""  # will be filled by admin on approval
+
         worker, _ = Worker.objects.get_or_create(
             phone_number=submission.normalized_phone_number,
             defaults={
-                "name": submission.name.strip(),
+                "name": name_en or name_ml,
+                "name_ml": name_ml or submission.name.strip(),
                 "category": submission.category,
                 "location": location,
                 "is_verified": False,

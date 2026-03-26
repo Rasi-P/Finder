@@ -9,35 +9,47 @@ class CategorySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Category
-        fields = ("id", "name", "icon_url", "worker_count")
+        fields = ("id", "name", "name_ml", "icon_url", "worker_count")
 
 
 class LocationSerializer(serializers.ModelSerializer):
     display_name = serializers.SerializerMethodField()
+    display_name_ml = serializers.SerializerMethodField()
 
     class Meta:
         model = Location
-        fields = ("id", "city", "area_name", "pincode", "display_name")
+        fields = ("id", "city", "area_name", "pincode", "display_name", "display_name_ml")
 
     def get_display_name(self, obj):
         return f"{obj.area_name}, {obj.city}"
+
+    def get_display_name_ml(self, obj):
+        area = obj.area_name_ml or obj.area_name
+        city = obj.city_ml or obj.city
+        return f"{area}, {city}"
 
 
 class WorkerCategorySerializer(serializers.ModelSerializer):
     class Meta:
         model = Category
-        fields = ("id", "name", "icon_url")
+        fields = ("id", "name", "name_ml", "icon_url")
 
 
 class WorkerLocationSerializer(serializers.ModelSerializer):
     display_name = serializers.SerializerMethodField()
+    display_name_ml = serializers.SerializerMethodField()
 
     class Meta:
         model = Location
-        fields = ("id", "city", "area_name", "pincode", "display_name")
+        fields = ("id", "city", "area_name", "pincode", "display_name", "display_name_ml")
 
     def get_display_name(self, obj):
         return f"{obj.area_name}, {obj.city}"
+
+    def get_display_name_ml(self, obj):
+        area = obj.area_name_ml or obj.area_name
+        city = obj.city_ml or obj.city
+        return f"{area}, {city}"
 
 
 class WorkerSerializer(serializers.ModelSerializer):
@@ -53,6 +65,7 @@ class WorkerSerializer(serializers.ModelSerializer):
         fields = (
             "id",
             "name",
+            "name_ml",
             "phone_number",
             "category",
             "location",
