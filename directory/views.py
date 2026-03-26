@@ -7,12 +7,11 @@ from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 
-from .models import Category, Location, Rating, Worker, WorkerSubmission, normalize_phone_number
+from .models import Category, Location, Rating, Worker, WorkerSubmission, WorkerUpdateRequest, normalize_phone_number
 from .serializers import (
     CategorySerializer,
     LocationSerializer,
     RatingSerializer,
-    WorkerSelfUpdateSerializer,
     WorkerSerializer,
     WorkerSubmissionSerializer,
 )
@@ -201,25 +200,52 @@ class WorkerSelfServiceAPIView(APIView):
         if not ok:
             return err
 
-        payload = {k: request.data[k] for k in request.data if k not in ("phone", "phone_number")}
-        if not payload:
-            return Response(
-                {
-                    "detail": "No fields to update. Send name, category, availability_status, "
-                    "location (city, area_name, pincode together), and/or service_description.",
-                },
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+        data = {k: v for k, v in request.data.items() if k not in ("phone", "phone_number")}
+        if not data:
+            return Response({"detail": "No fields to update."}, status=status.HTTP_400_BAD_REQUEST)
 
-        serializer = WorkerSelfUpdateSerializer(worker, data=payload, partial=True)
-        serializer.is_valid(raise_exception=True)
-        updated = serializer.save()
-        out = (
-            Worker.objects.select_related("category", "location")
-            .annotate(average_rating=Avg("ratings__rating"))
-            .get(pk=updated.pk)
+        # Validate pincode if provided
+        pincode = data.get("pincode", "").strip()
+        if pincode and (not pincode.isdigit() or len(pincode) != 6):
+            return Response({"detail": "Enter a valid 6-digit pincode."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Validate phone if provided
+        new_phone = normalize_phone_number(data.get("new_phone_number", ""))
+        if new_phone and (len(new_phone) < 10 or len(new_phone) > 15):
+            return Response({"detail": "Enter a valid phone number."}, status=status.HTTP_400_BAD_REQUEST)
+        if new_phone and Worker.objects.filter(phone_number=new_phone).exclude(pk=pk).exists():
+            return Response({"detail": "This phone number is already in use."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Cancel any existing pending update request for this worker
+        WorkerUpdateRequest.objects.filter(
+            worker=worker, status=WorkerUpdateRequest.STATUS_PENDING
+        ).update(status=WorkerUpdateRequest.STATUS_REJECTED)
+
+        category_obj = None
+        category_id = data.get("category")
+        if category_id:
+            category_obj = Category.objects.filter(pk=category_id).first()
+
+        availability = data.get("availability_status")
+        if availability is not None and not isinstance(availability, bool):
+            availability = str(availability).lower() in ("true", "1", "yes")
+
+        WorkerUpdateRequest.objects.create(
+            worker=worker,
+            name=data.get("name", "").strip(),
+            phone_number=new_phone,
+            category=category_obj,
+            city=data.get("city", "").strip(),
+            area_name=data.get("area_name", "").strip(),
+            pincode=pincode,
+            service_description=data.get("service_description", "").strip(),
+            availability_status=availability,
         )
-        return Response(WorkerSerializer(out).data)
+
+        return Response(
+            {"detail": "Your changes have been submitted and are waiting for admin approval."},
+            status=status.HTTP_202_ACCEPTED,
+        )
 
     def delete(self, request, pk):
         worker = Worker.objects.filter(pk=pk).first()
@@ -230,6 +256,33 @@ class WorkerSelfServiceAPIView(APIView):
             return err
         worker.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class WorkerPendingUpdateAPIView(APIView):
+    """Return the latest pending update request for a worker (owner-only via phone)."""
+
+    def get(self, request, pk):
+        worker = Worker.objects.filter(pk=pk).first()
+        if not worker:
+            return Response({"detail": "Worker not found."}, status=status.HTTP_404_NOT_FOUND)
+        raw = (request.query_params.get("phone") or request.query_params.get("phone_number") or "").strip()
+        if not raw or normalize_phone_number(raw) != worker.normalized_phone_number:
+            return Response({"detail": "Phone number does not match."}, status=status.HTTP_403_FORBIDDEN)
+        req = WorkerUpdateRequest.objects.filter(worker=worker, status=WorkerUpdateRequest.STATUS_PENDING).first()
+        if not req:
+            return Response({"pending": None})
+        return Response({
+            "pending": {
+                "name": req.name or None,
+                "category": req.category.name if req.category else None,
+                "availability_status": req.availability_status,
+                "city": req.city or None,
+                "area_name": req.area_name or None,
+                "pincode": req.pincode or None,
+                "service_description": req.service_description or None,
+                "created_at": req.created_at,
+            }
+        })
 
 
 class WorkerTrackCallAPIView(APIView):

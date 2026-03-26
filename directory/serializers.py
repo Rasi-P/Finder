@@ -79,65 +79,23 @@ class WorkerSerializer(serializers.ModelSerializer):
 
 
 class WorkerSelfUpdateSerializer(serializers.ModelSerializer):
-    """Partial updates for the listing owner; `phone` is verified on the view, not updated here."""
+    """Partial updates for the listing owner; location changes are handled by the view."""
 
     category = serializers.PrimaryKeyRelatedField(queryset=Category.objects.all(), required=False)
-    city = serializers.CharField(write_only=True, required=False, allow_blank=True)
-    area_name = serializers.CharField(write_only=True, required=False, allow_blank=True)
-    pincode = serializers.CharField(write_only=True, required=False, allow_blank=True)
     service_description = serializers.CharField(write_only=True, required=False, allow_blank=True)
 
     class Meta:
         model = Worker
-        fields = (
-            "name",
-            "category",
-            "availability_status",
-            "city",
-            "area_name",
-            "pincode",
-            "service_description",
-        )
-
-    def validate_pincode(self, value):
-        if value is None or value == "":
-            return value
-        normalized = str(value).strip()
-        if not normalized.isdigit() or len(normalized) != 6:
-            raise serializers.ValidationError("Enter a valid 6-digit pincode.")
-        return normalized
-
-    def validate(self, attrs):
-        location_keys = {"city", "area_name", "pincode"}
-        present = location_keys.intersection(attrs.keys())
-        if present and present != location_keys:
-            raise serializers.ValidationError(
-                "To change your service area, include city, area_name, and pincode together."
-            )
-        return attrs
+        fields = ("name", "category", "availability_status", "service_description")
 
     def update(self, instance, validated_data):
         service_description = validated_data.pop("service_description", serializers.empty)
-        city = validated_data.pop("city", None)
-        area_name = validated_data.pop("area_name", None)
-        pincode = validated_data.pop("pincode", None)
-
-        if city is not None and area_name is not None and pincode is not None:
-            location, _ = Location.objects.get_or_create(
-                area_name=area_name.strip(),
-                pincode=pincode.strip(),
-                defaults={"city": city.strip()},
-            )
-            validated_data["location"] = location
-
         worker = super().update(instance, validated_data)
-
         if service_description is not serializers.empty:
             submission = getattr(worker, "submission", None)
             if submission:
                 submission.service_description = service_description or ""
                 submission.save(update_fields=["service_description"])
-
         return worker
 
 

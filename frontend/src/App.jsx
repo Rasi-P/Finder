@@ -1,5 +1,5 @@
 import { startTransition, useCallback, useDeferredValue, useEffect, useState } from "react";
-import { Link, Route, Routes, useNavigate, useParams } from "react-router-dom";
+import { Link, Route, Routes, useLocation, useNavigate, useParams } from "react-router-dom";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://127.0.0.1:8000/api";
 const WORKER_PHONE_STORAGE_KEY = "finder_worker_phone";
@@ -201,6 +201,7 @@ function findError(payload) {
 async function requestJson(path, { method = "GET", params, body, signal } = {}) {
   const response = await fetch(`${API_BASE_URL}${path}${buildQuery(params)}`, {
     method,
+    cache: "no-store",
     headers: {
       Accept: "application/json",
       ...(body ? { "Content-Type": "application/json" } : {}),
@@ -328,6 +329,28 @@ function App() {
   );
 }
 
+function MobileNav({ text, toggleLang }) {
+  const location = useLocation();
+  const isHome = location.pathname === "/";
+  const isJoin = location.pathname === "/join";
+  return (
+    <nav className="mobile-bottom-nav">
+      <Link to="/" className={isHome ? "active" : ""}>
+        <span className="nav-icon">🏠</span>
+        <span>Home</span>
+      </Link>
+      <button type="button" onClick={toggleLang}>
+        <span className="nav-icon">🌐</span>
+        <span>{text.langToggle}</span>
+      </button>
+      <Link to="/join" className={isJoin ? "active" : ""}>
+        <span className="nav-icon">➕</span>
+        <span>Register</span>
+      </Link>
+    </nav>
+  );
+}
+
 function HomePage({
   text, toggleLang, homeData, workers, pagination, filters, updateFilter, homeState, workerState,
   setFilters, locationSuggestions, setLocationSuggestions,
@@ -386,7 +409,7 @@ function HomePage({
             <button className={filters.category === "" ? "category-pill active" : "category-pill"} onClick={() => updateFilter("category", "")} type="button"><span>{text.allServices}</span></button>
             {homeData.categories.map((category) => (
               <button key={category.id} className={filters.category === category.name ? "category-pill active" : "category-pill"} onClick={() => updateFilter("category", category.name)} type="button">
-                {category.icon_url ? <img src={category.icon_url} alt="" /> : <span className="icon-fallback">+</span>}
+                {category.icon_url ? <img src={category.icon_url} alt="" onError={(e) => { e.target.style.display='none'; e.target.nextSibling.style.display='inline-grid'; }} /> : null}<span className="icon-fallback" style={category.icon_url ? {display:'none'} : {}}>+</span>
                 <span>{category.name}</span>
                 <strong>{category.worker_count}</strong>
               </button>
@@ -413,6 +436,9 @@ function HomePage({
         </div>
         <Link to="/join" className="join-button">{text.joinButton}</Link>
       </section>
+
+      <Link to="/join" className="mobile-fab">➕ {text.joinButton.replace(" →", "")}</Link>
+      <MobileNav text={text} toggleLang={toggleLang} />
 
       <section className="results-panel">
         <div className="section-heading"><div><h2>{text.resultsTitle}</h2><p>{text.resultsHint}</p></div></div>
@@ -450,11 +476,27 @@ function HomePage({
   );
 }
 
+async function fetchPincodeData(pincode) {
+  try {
+    const res = await fetch(`https://api.postalpincode.in/pincode/${pincode}`);
+    const data = await res.json();
+    if (data[0]?.Status === "Success") {
+      const offices = data[0].PostOffice;
+      const city = offices[0]?.District || offices[0]?.Division || "";
+      const areas = [...new Set(offices.map((o) => o.Name))];
+      return { city, areas };
+    }
+  } catch {}
+  return null;
+}
+
 function JoinPage({ text, toggleLang }) {
   const navigate = useNavigate();
   const [categories, setCategories] = useState([]);
   const [submission, setSubmission] = useState(emptySubmission);
   const [submissionState, setSubmissionState] = useState({ loading: false, error: "", success: "" });
+  const [pincodeAreas, setPincodeAreas] = useState([]);
+  const [pincodeLoading, setPincodeLoading] = useState(false);
   const [trackedPhone, setTrackedPhone] = useState(() =>
     typeof localStorage !== "undefined" ? localStorage.getItem(WORKER_PHONE_STORAGE_KEY) || "" : ""
   );
@@ -498,6 +540,26 @@ function JoinPage({ text, toggleLang }) {
     setSubmission((current) => ({ ...current, [key]: value }));
   }
 
+  async function handlePincodeChange(pincode) {
+    updateSubmission("pincode", pincode);
+    updateSubmission("city", "");
+    updateSubmission("area_name", "");
+    setPincodeAreas([]);
+    if (pincode.length === 6 && /^\d{6}$/.test(pincode)) {
+      setPincodeLoading(true);
+      const result = await fetchPincodeData(pincode);
+      setPincodeLoading(false);
+      if (result) {
+        updateSubmission("city", result.city);
+        updateSubmission("area_name", result.areas[0] || "");
+        setPincodeAreas(result.areas);
+      } else {
+        updateSubmission("city", "");
+        updateSubmission("area_name", "");
+      }
+    }
+  }
+
   async function handleSubmit(event) {
     event.preventDefault();
     const phoneUsed = submission.phone_number;
@@ -530,10 +592,11 @@ function JoinPage({ text, toggleLang }) {
 
   return (
     <main className="app-shell">
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"8px"}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"8px",padding:"12px 12px 0"}}>
         <button className="ghost-button back-button" onClick={() => navigate("/")} type="button">{text.backToHome}</button>
         <button className="lang-toggle" onClick={toggleLang} type="button">{text.langToggle}</button>
       </div>
+      <MobileNav text={text} toggleLang={toggleLang} />
       <div className="join-grid">
         <div className="panel join-copy">
           <div className="brand-lockup"><span className="brand-mark">F</span><span className="brand-name">{text.brand}</span></div>
@@ -581,9 +644,23 @@ function JoinPage({ text, toggleLang }) {
             </div>
             <label><span>{text.submissionCategory}</span><select required value={submission.category} onChange={(e) => updateSubmission("category", e.target.value)}><option value="">{text.selectCategory}</option>{categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select></label>
             <div className="form-grid three-up">
-              <label><span>{text.submissionCity}</span><input required value={submission.city} onChange={(e) => updateSubmission("city", e.target.value)} /></label>
-              <label><span>{text.submissionArea}</span><input required value={submission.area_name} onChange={(e) => updateSubmission("area_name", e.target.value)} /></label>
-              <label><span>{text.submissionPincode}</span><input required value={submission.pincode} onChange={(e) => updateSubmission("pincode", e.target.value)} /></label>
+              <label>
+                <span>{text.submissionPincode}</span>
+                <input required value={submission.pincode} onChange={(e) => handlePincodeChange(e.target.value)} placeholder="6-digit pincode" maxLength={6} />
+                {pincodeLoading ? <span style={{fontSize:"0.8rem",color:"var(--muted)"}}>Looking up pincode...</span> : null}
+              </label>
+              <label>
+                <span>{text.submissionCity}</span>
+                <input required value={submission.city} readOnly style={{background:"var(--bg-deep)",cursor:"not-allowed"}} placeholder="Auto-filled" />
+              </label>
+              <label>
+                <span>{text.submissionArea}</span>
+                {pincodeAreas.length > 1
+                  ? <select required value={submission.area_name} onChange={(e) => updateSubmission("area_name", e.target.value)}>
+                      {pincodeAreas.map((a) => <option key={a} value={a}>{a}</option>)}
+                    </select>
+                  : <input required value={submission.area_name} readOnly style={{background:"var(--bg-deep)",cursor:"not-allowed"}} placeholder="Auto-filled" />}
+              </label>
             </div>
             <label><span>{text.submissionDescription}</span><textarea rows="4" value={submission.service_description} onChange={(e) => updateSubmission("service_description", e.target.value)} placeholder="Emergency plumbing, wiring, painting, home cleaning..." /></label>
             <label className="checkbox-row"><input type="checkbox" checked={submission.availability_status} onChange={(e) => updateSubmission("availability_status", e.target.checked)} /><span>{text.submissionAvailability}</span></label>
@@ -611,21 +688,74 @@ function WorkerDetailPage({ text, toggleLang }) {
   const [ownerState, setOwnerState] = useState({ loading: false, error: "", success: "" });
   const [deletePhone, setDeletePhone] = useState("");
   const [deleteState, setDeleteState] = useState({ loading: false, error: "" });
+  const [editPincodeAreas, setEditPincodeAreas] = useState([]);
+  const [editPincodeLoading, setEditPincodeLoading] = useState(false);
+  const [pendingUpdate, setPendingUpdate] = useState(null);
+  const storedPhone = typeof localStorage !== "undefined" ? localStorage.getItem(WORKER_PHONE_STORAGE_KEY) || "" : "";
+
+  const fetchPendingUpdate = useCallback(() => {
+    if (!storedPhone) return Promise.resolve(null);
+    return requestJson(`/workers/${id}/pending-update/`, { params: { phone: storedPhone } })
+      .then((r) => r.pending)
+      .catch(() => null);
+  }, [id, storedPhone]);
+
+  const fetchWorker = useCallback(() => {
+    const params = storedPhone ? { phone: storedPhone, _: Date.now() } : { _: Date.now() };
+    return requestJson(`/workers/${id}/`, { params })
+      .then((data) => {
+        setWorker(data);
+        setState({ loading: false, error: "" });
+        setOwnerForm((prev) => prev ? {
+          ...prev,
+          name: data.name,
+          category: String(data.category.id),
+          availability_status: data.availability_status,
+          city: data.location.city,
+          area_name: data.location.area_name,
+          pincode: data.location.pincode,
+          service_description: data.service_description || "",
+        } : prev);
+      })
+      .catch((error) => { setState({ loading: false, error: error.message || text.error }); });
+  }, [id, storedPhone, text.error]);
 
   useEffect(() => {
     const controller = new AbortController();
-    const stored = typeof localStorage !== "undefined" ? localStorage.getItem(WORKER_PHONE_STORAGE_KEY) || "" : "";
-    const params = stored ? { phone: stored } : {};
+    const params = storedPhone ? { phone: storedPhone } : {};
     requestJson(`/workers/${id}/`, { params, signal: controller.signal })
       .then((data) => {
         setWorker(data);
         setState({ loading: false, error: "" });
+        // Fetch pending update if this is the owner
+        if (storedPhone) {
+          requestJson(`/workers/${id}/pending-update/`, { params: { phone: storedPhone } })
+            .then((r) => setPendingUpdate(r.pending))
+            .catch(() => setPendingUpdate(null));
+        } else {
+          setPendingUpdate(null);
+        }
       })
       .catch((error) => {
         if (error.name !== "AbortError") setState({ loading: false, error: error.message || text.error });
       });
     return () => controller.abort();
   }, [id]);
+
+  // Poll every 5s always; when pending transitions to null, re-fetch worker
+  useEffect(() => {
+    if (!storedPhone) return;
+    let lastPending = pendingUpdate;
+    const interval = setInterval(async () => {
+      const pending = await fetchPendingUpdate();
+      setPendingUpdate(pending);
+      if (lastPending && !pending) {
+        fetchWorker();
+      }
+      lastPending = pending;
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [fetchPendingUpdate, fetchWorker, storedPhone]);
 
   useEffect(() => {
     if (!editOpen) return;
@@ -655,12 +785,29 @@ function WorkerDetailPage({ text, toggleLang }) {
     setOwnerForm((current) => (current ? { ...current, [key]: value } : current));
   }
 
+  async function handleEditPincodeChange(pincode) {
+    updateOwnerForm("pincode", pincode);
+    updateOwnerForm("city", "");
+    updateOwnerForm("area_name", "");
+    setEditPincodeAreas([]);
+    if (pincode.length === 6 && /^\d{6}$/.test(pincode)) {
+      setEditPincodeLoading(true);
+      const result = await fetchPincodeData(pincode);
+      setEditPincodeLoading(false);
+      if (result) {
+        updateOwnerForm("city", result.city);
+        updateOwnerForm("area_name", result.areas[0] || "");
+        setEditPincodeAreas(result.areas);
+      }
+    }
+  }
+
   async function handleOwnerSave(event) {
     event.preventDefault();
     if (!ownerForm) return;
     try {
       setOwnerState({ loading: true, error: "", success: "" });
-      const data = await requestJson(`/workers/${id}/self/`, {
+      await requestJson(`/workers/${id}/self/`, {
         method: "PATCH",
         body: {
           phone_number: ownerForm.phoneConfirm.trim(),
@@ -673,8 +820,10 @@ function WorkerDetailPage({ text, toggleLang }) {
           service_description: ownerForm.service_description,
         },
       });
-      setWorker(data);
-      setOwnerState({ loading: false, error: "", success: text.listingUpdated });
+      setOwnerState({ loading: false, error: "", success: "Your changes have been submitted and are waiting for admin approval." });
+      // Refresh pending update banner
+      const pending = await fetchPendingUpdate();
+      setPendingUpdate(pending);
     } catch (error) {
       setOwnerState({ loading: false, error: error.message || text.listingUpdateError, success: "" });
     }
@@ -715,11 +864,12 @@ function WorkerDetailPage({ text, toggleLang }) {
 
   return (
     <main className="app-shell">
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"8px"}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"8px",padding:"12px 12px 0"}}>
         <button className="ghost-button back-button" onClick={() => navigate(-1)} type="button">{text.backToHome}</button>
         <button className="lang-toggle" onClick={toggleLang} type="button">{text.langToggle}</button>
       </div>
-      <div className="detail-grid">
+      <MobileNav text={text} toggleLang={toggleLang} />
+      <div className="detail-grid" style={{padding:"0 12px"}}>
         <div className="panel detail-main">
           <div className="worker-topline">
             <div>
@@ -754,6 +904,20 @@ function WorkerDetailPage({ text, toggleLang }) {
           </p>
         </div>
 
+        {pendingUpdate ? (
+          <div className="panel" style={{borderColor:"rgba(255,182,73,0.5)",background:"rgba(255,182,73,0.07)"}}>
+            <p style={{fontWeight:600,marginBottom:10}}>⏳ Changes pending admin approval</p>
+            <p style={{fontSize:"0.85rem",color:"var(--muted)",marginBottom:12}}>Your current listing stays unchanged until an admin approves the update below.</p>
+            <div style={{display:"grid",gap:6,fontSize:"0.9rem"}}>
+              {pendingUpdate.name && <span><strong>Name:</strong> {pendingUpdate.name}</span>}
+              {pendingUpdate.category && <span><strong>Category:</strong> {pendingUpdate.category}</span>}
+              {pendingUpdate.availability_status !== null && pendingUpdate.availability_status !== undefined && <span><strong>Availability:</strong> {pendingUpdate.availability_status ? "Available" : "Busy"}</span>}
+              {pendingUpdate.pincode && <span><strong>Location:</strong> {pendingUpdate.area_name}, {pendingUpdate.city} - {pendingUpdate.pincode}</span>}
+              {pendingUpdate.service_description && <span><strong>Description:</strong> {pendingUpdate.service_description}</span>}
+            </div>
+          </div>
+        ) : null}
+
         {editOpen && ownerForm ? (
           <div className="panel submission-form">
             <h3>{text.editListing}</h3>
@@ -765,10 +929,27 @@ function WorkerDetailPage({ text, toggleLang }) {
                 <label><span>{text.submissionCategory}</span><select required value={ownerForm.category} onChange={(e) => updateOwnerForm("category", e.target.value)}><option value="">{text.selectCategory}</option>{categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select></label>
               </div>
               <label className="checkbox-row"><input type="checkbox" checked={ownerForm.availability_status} onChange={(e) => updateOwnerForm("availability_status", e.target.checked)} /><span>{text.submissionAvailability}</span></label>
+              <p style={{fontSize:"0.85rem",color:"var(--muted)",margin:"8px 0 4px",padding:"10px 12px",background:"rgba(255,182,73,0.1)",borderRadius:"10px",border:"1px solid rgba(255,182,73,0.3)"}}>
+                ⚠️ Location changes need admin re-approval. Your current location stays active until approved.
+              </p>
               <div className="form-grid three-up">
-                <label><span>{text.submissionCity}</span><input required value={ownerForm.city} onChange={(e) => updateOwnerForm("city", e.target.value)} /></label>
-                <label><span>{text.submissionArea}</span><input required value={ownerForm.area_name} onChange={(e) => updateOwnerForm("area_name", e.target.value)} /></label>
-                <label><span>{text.submissionPincode}</span><input required value={ownerForm.pincode} onChange={(e) => updateOwnerForm("pincode", e.target.value)} /></label>
+                <label>
+                  <span>{text.submissionPincode}</span>
+                  <input required value={ownerForm.pincode} onChange={(e) => handleEditPincodeChange(e.target.value)} maxLength={6} />
+                  {editPincodeLoading ? <span style={{fontSize:"0.8rem",color:"var(--muted)"}}>Looking up pincode...</span> : null}
+                </label>
+                <label>
+                  <span>{text.submissionCity}</span>
+                  <input required value={ownerForm.city} readOnly style={{background:"var(--bg-deep)",cursor:"not-allowed"}} />
+                </label>
+                <label>
+                  <span>{text.submissionArea}</span>
+                  {editPincodeAreas.length > 1
+                    ? <select required value={ownerForm.area_name} onChange={(e) => updateOwnerForm("area_name", e.target.value)}>
+                        {editPincodeAreas.map((a) => <option key={a} value={a}>{a}</option>)}
+                      </select>
+                    : <input required value={ownerForm.area_name} readOnly style={{background:"var(--bg-deep)",cursor:"not-allowed"}} />}
+                </label>
               </div>
               <label><span>{text.submissionDescription}</span><textarea rows={3} value={ownerForm.service_description} onChange={(e) => updateOwnerForm("service_description", e.target.value)} /></label>
               {ownerState.error ? <p className="form-message error">{ownerState.error}</p> : null}

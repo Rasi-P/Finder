@@ -146,6 +146,69 @@ class WorkerSubmission(models.Model):
         return f"{self.name} ({self.category.name}) - {self.get_status_display()}"
 
 
+class WorkerUpdateRequest(models.Model):
+    STATUS_PENDING = "pending"
+    STATUS_APPROVED = "approved"
+    STATUS_REJECTED = "rejected"
+    STATUS_CHOICES = (
+        (STATUS_PENDING, "Pending"),
+        (STATUS_APPROVED, "Approved"),
+        (STATUS_REJECTED, "Rejected"),
+    )
+
+    worker = models.ForeignKey(Worker, on_delete=models.CASCADE, related_name="update_requests")
+    name = models.CharField(max_length=200, blank=True)
+    phone_number = models.CharField(max_length=15, blank=True)
+    category = models.ForeignKey(Category, on_delete=models.CASCADE, null=True, blank=True)
+    city = models.CharField(max_length=100, blank=True)
+    area_name = models.CharField(max_length=150, blank=True)
+    pincode = models.CharField(max_length=10, blank=True)
+    service_description = models.TextField(blank=True)
+    availability_status = models.BooleanField(null=True, blank=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=STATUS_PENDING, db_index=True)
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ("-created_at",)
+
+    @transaction.atomic
+    def approve(self):
+        worker = Worker.objects.select_for_update().get(pk=self.worker_id)
+        if self.name:
+            worker.name = self.name
+        if self.phone_number:
+            worker.phone_number = self.phone_number
+        if self.category_id:
+            worker.category_id = self.category_id
+        if self.availability_status is not None:
+            worker.availability_status = self.availability_status
+        if self.city and self.area_name and self.pincode:
+            location, _ = Location.objects.get_or_create(
+                area_name=self.area_name.strip(),
+                pincode=self.pincode.strip(),
+                defaults={"city": self.city.strip()},
+            )
+            worker.location = location
+        worker.save()
+        if self.service_description:
+            submission = getattr(worker, "submission", None)
+            if submission:
+                submission.service_description = self.service_description
+                submission.save(update_fields=["service_description"])
+        self.status = self.STATUS_APPROVED
+        self.reviewed_at = timezone.now()
+        self.save(update_fields=["status", "reviewed_at"])
+
+    def reject(self):
+        self.status = self.STATUS_REJECTED
+        self.reviewed_at = timezone.now()
+        self.save(update_fields=["status", "reviewed_at"])
+
+    def __str__(self):
+        return f"Update request for {self.worker.name} — {self.get_status_display()}"
+
+
 class Rating(models.Model):
     worker = models.ForeignKey(Worker, on_delete=models.CASCADE, related_name="ratings")
     rating = models.IntegerField(choices=[(i, i) for i in range(1, 6)])

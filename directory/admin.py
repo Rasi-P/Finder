@@ -1,6 +1,6 @@
 from django.contrib import admin, messages
 
-from .models import Category, Location, Rating, Worker, WorkerSubmission
+from .models import Category, Location, Rating, Worker, WorkerSubmission, WorkerUpdateRequest
 
 
 @admin.register(Location)
@@ -110,3 +110,44 @@ class RatingAdmin(admin.ModelAdmin):
     list_display = ("worker", "rating", "client_ip", "created_at")
     list_filter = ("rating", "created_at")
     search_fields = ("worker__name",)
+
+
+@admin.action(description="Approve selected update requests")
+def approve_update_requests(modeladmin, request, queryset):
+    count = 0
+    for req in queryset.filter(status=WorkerUpdateRequest.STATUS_PENDING):
+        req.approve()
+        count += 1
+    modeladmin.message_user(request, f"Approved {count} update request(s).", level=messages.SUCCESS)
+
+
+@admin.action(description="Reject selected update requests")
+def reject_update_requests(modeladmin, request, queryset):
+    count = 0
+    for req in queryset.filter(status=WorkerUpdateRequest.STATUS_PENDING):
+        req.reject()
+        count += 1
+    modeladmin.message_user(request, f"Rejected {count} update request(s).", level=messages.WARNING)
+
+
+@admin.register(WorkerUpdateRequest)
+class WorkerUpdateRequestAdmin(admin.ModelAdmin):
+    list_display = ("worker", "worker_phone", "name", "phone_number", "category", "city", "area_name", "pincode", "availability_status", "status", "created_at")
+    list_filter = ("status", "created_at")
+    search_fields = ("worker__name", "worker__phone_number", "name", "phone_number", "city", "area_name")
+    readonly_fields = ("worker", "created_at", "reviewed_at")
+    actions = (approve_update_requests, reject_update_requests)
+
+    @admin.display(description="Worker phone")
+    def worker_phone(self, obj):
+        return obj.worker.phone_number
+
+    def save_model(self, request, obj, form, change):
+        if change and "status" in form.changed_data:
+            if obj.status == WorkerUpdateRequest.STATUS_APPROVED:
+                obj.approve()
+                return
+            elif obj.status == WorkerUpdateRequest.STATUS_REJECTED:
+                obj.reject()
+                return
+        super().save_model(request, obj, form, change)

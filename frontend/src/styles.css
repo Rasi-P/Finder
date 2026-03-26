@@ -474,194 +474,384 @@ h1 {
   }
 }
 
+@keyframes fadeSlideUp {
+  from { opacity: 0; transform: translateY(18px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes popIn {
+  from { opacity: 0; transform: scale(0.92); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
 @media (max-width: 640px) {
+  /* ── Shell ── */
   .app-shell {
-    padding: 16px 12px 80px;
+    padding: 0 0 90px;
+  }
+
+  /* ── Hero: compact banner, no side-by-side ── */
+  .hero-panel {
+    grid-template-columns: 1fr;
+    gap: 0;
   }
 
   .hero-copy {
-    border-radius: 20px;
-    padding: 20px;
+    border-radius: 0 0 28px 28px;
+    padding: 20px 16px 24px;
+    animation: fadeSlideUp 0.45s ease both;
   }
+
+  .hero-copy::after { display: none; }
 
   .hero-copy h1 {
-    font-size: 1.6rem;
+    font-size: 1.55rem;
     max-width: 100%;
-  }
-
-  .hero-copy p {
-    font-size: 0.9rem;
+    line-height: 1.15;
     margin-top: 10px;
   }
 
+  .hero-copy > p {
+    font-size: 0.88rem;
+    margin-top: 8px;
+    line-height: 1.6;
+  }
+
   .eyebrow {
-    font-size: 0.8rem;
-    padding: 6px 10px;
-    margin-bottom: 12px;
+    font-size: 0.78rem;
+    padding: 5px 10px;
+    margin-bottom: 0;
   }
 
-  .brand-mark {
-    width: 34px;
-    height: 34px;
-  }
+  .brand-mark { width: 32px; height: 32px; border-radius: 12px; }
+  .brand-name { font-size: 0.95rem; }
 
+  /* ── Sticky search card ── */
   .search-card {
-    border-radius: 20px;
-    padding: 16px;
-    gap: 12px;
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    border-radius: 0;
+    border-left: 0;
+    border-right: 0;
+    border-top: 0;
+    padding: 12px 16px 14px;
+    gap: 10px;
+    backdrop-filter: blur(20px);
+    background: rgba(255, 250, 240, 0.96);
+    box-shadow: 0 4px 20px rgba(92,62,27,0.10);
+    animation: fadeSlideUp 0.45s 0.1s ease both;
   }
 
   .search-card input {
-    padding: 14px 16px;
+    padding: 13px 16px;
     font-size: 1rem;
+    border-radius: 14px;
   }
 
   .toggle {
-    padding: 12px 14px;
-    font-size: 0.9rem;
+    padding: 11px 14px;
+    font-size: 0.85rem;
     flex: 1;
     text-align: center;
+    border-radius: 12px;
   }
 
   .ghost-button {
-    padding: 12px 14px;
-    font-size: 0.9rem;
+    padding: 11px 14px;
+    font-size: 0.88rem;
     width: 100%;
     text-align: center;
+    border-radius: 12px;
   }
 
-  .panel,
-  .results-panel {
+  .search-note { font-size: 0.8rem; }
+
+  /* ── Stats: 2×2 compact ── */
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    padding: 14px 12px 0;
+    animation: fadeSlideUp 0.45s 0.15s ease both;
+  }
+
+  .stat-card {
+    padding: 14px 14px 12px;
+    border-radius: 18px;
+    gap: 4px;
+    flex-direction: row;
+    align-items: center;
+  }
+
+  .stat-card strong { font-size: 1.6rem; }
+  .stat-card span   { font-size: 0.78rem; }
+
+  /* ── Content panels ── */
+  .content-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+    padding: 12px 12px 0;
+    animation: fadeSlideUp 0.45s 0.2s ease both;
+  }
+
+  .panel, .results-panel {
     border-radius: 20px;
     padding: 16px;
   }
 
-  .stats-grid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 10px;
+  .results-panel {
+    margin: 12px 12px 0;
   }
 
-  .stat-card {
-    padding: 14px 16px;
-    border-radius: 18px;
-    gap: 6px;
-  }
+  .section-heading h2 { font-size: 1.05rem; }
+  .section-heading p  { font-size: 0.82rem; }
 
-  .stat-card strong {
-    font-size: 1.5rem;
-  }
-
-  .stat-card span {
-    font-size: 0.8rem;
-  }
-
+  /* ── Categories: horizontal scroll strip ── */
   .category-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 10px;
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    gap: 8px;
+    padding-bottom: 6px;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
   }
+
+  .category-grid::-webkit-scrollbar { display: none; }
 
   .category-pill {
-    padding: 12px;
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 10px 12px;
     border-radius: 16px;
-    gap: 8px;
+    min-width: 72px;
+    text-align: center;
+    grid-template-columns: unset;
+    transition: transform 150ms ease, box-shadow 150ms ease;
   }
+
+  .category-pill:active { transform: scale(0.94); }
 
   .category-pill img,
   .icon-fallback {
-    width: 28px;
-    height: 28px;
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
   }
 
-  .category-pill span {
-    font-size: 0.85rem;
+  .category-pill span { font-size: 0.72rem; line-height: 1.3; }
+  .category-pill strong { display: none; }
+
+  /* ── Locations: horizontal scroll ── */
+  .location-list {
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    gap: 8px;
+    scrollbar-width: none;
   }
+
+  .location-list::-webkit-scrollbar { display: none; }
 
   .location-card {
+    flex: 0 0 auto;
+    flex-direction: column;
+    align-items: flex-start;
     padding: 12px 14px;
+    border-radius: 16px;
+    min-width: 120px;
+    gap: 4px;
   }
 
+  /* ── Join banner ── */
+  .join-banner {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 18px 16px;
+    border-radius: 20px;
+    margin: 12px 12px 0;
+    gap: 14px;
+  }
+
+  .join-banner h2 { font-size: 1.05rem; }
+  .join-banner p  { font-size: 0.85rem; }
+
+  .join-button {
+    width: 100%;
+    text-align: center;
+    padding: 14px;
+    border-radius: 14px;
+  }
+
+  /* ── Worker cards: swipeable feel ── */
   .worker-grid {
     grid-template-columns: 1fr;
-    gap: 12px;
+    gap: 10px;
   }
 
   .worker-card {
     border-radius: 18px;
-    padding: 14px;
-    gap: 12px;
+    padding: 14px 14px 12px;
+    gap: 10px;
+    animation: popIn 0.3s ease both;
+    transition: transform 150ms ease, box-shadow 150ms ease;
   }
 
-  .worker-topline {
-    flex-direction: row;
-    align-items: flex-start;
+  .worker-card:active {
+    transform: scale(0.98);
+    box-shadow: 0 4px 16px rgba(92,62,27,0.08);
   }
 
-  .worker-topline h3 {
-    font-size: 1rem;
-  }
+  .worker-topline { align-items: flex-start; }
+  .worker-topline h3 { font-size: 1rem; }
+  .worker-topline p  { font-size: 0.82rem; }
 
-  .worker-topline p {
-    font-size: 0.85rem;
-  }
-
-  .verified-chip {
-    font-size: 0.75rem;
-    padding: 5px 9px;
+  .verified-chip, .pending-chip {
+    font-size: 0.72rem;
+    padding: 4px 8px;
     white-space: nowrap;
   }
 
-  .meta-row {
-    font-size: 0.85rem;
-  }
+  .meta-row { font-size: 0.82rem; }
 
-  .action-row {
-    gap: 8px;
-  }
+  .action-row { gap: 8px; }
 
   .action-button {
-    padding: 13px 12px;
+    padding: 14px 12px;
     font-size: 0.95rem;
+    border-radius: 14px;
+    /* Bigger tap target */
+    min-height: 48px;
   }
 
   .profile-link {
     padding: 11px;
-    font-size: 0.85rem;
+    font-size: 0.82rem;
+    border-radius: 12px;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 
-  .section-heading h2 {
-    font-size: 1.1rem;
-  }
+  /* ── Pagination ── */
+  .pagination-row { gap: 8px; }
+  .pagination-row .ghost-button { width: auto; padding: 10px 14px; }
 
-  .section-heading p {
-    font-size: 0.85rem;
-  }
-
-  .back-button {
-    margin-bottom: 14px;
-    font-size: 0.9rem;
-  }
-
-  .detail-main h2 {
-    font-size: 1.3rem;
-  }
-
-  .star-btn {
-    font-size: 2.4rem;
-  }
+  /* ── Detail page ── */
+  .back-button { margin-bottom: 10px; font-size: 0.88rem; }
+  .detail-main h2 { font-size: 1.25rem; }
+  .star-btn { font-size: 2.6rem; }
 
   .submit-button {
     padding: 15px;
     font-size: 1rem;
+    border-radius: 14px;
+    min-height: 52px;
   }
 
-  .pagination-row {
-    gap: 10px;
+  /* ── Sticky bottom nav bar ── */
+  .mobile-bottom-nav {
+    display: flex;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    background: rgba(255, 250, 240, 0.97);
+    backdrop-filter: blur(20px);
+    border-top: 1px solid var(--line);
+    padding: 10px 0 max(10px, env(safe-area-inset-bottom));
+    justify-content: space-around;
+    align-items: center;
+    box-shadow: 0 -4px 24px rgba(92,62,27,0.10);
   }
 
-  .pagination-row .ghost-button {
-    width: auto;
-    padding: 10px 14px;
+  .mobile-bottom-nav a,
+  .mobile-bottom-nav button {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    font-size: 0.7rem;
+    color: var(--muted);
+    background: none;
+    border: 0;
+    padding: 4px 16px;
+    border-radius: 12px;
+    transition: color 150ms ease, transform 150ms ease;
+    text-decoration: none;
+    font-family: inherit;
+    cursor: pointer;
   }
+
+  .mobile-bottom-nav a.active,
+  .mobile-bottom-nav button.active {
+    color: var(--mint);
+  }
+
+  .mobile-bottom-nav a:active,
+  .mobile-bottom-nav button:active {
+    transform: scale(0.88);
+  }
+
+  .mobile-bottom-nav .nav-icon {
+    font-size: 1.4rem;
+    line-height: 1;
+  }
+
+  /* ── Floating register FAB ── */
+  .mobile-fab {
+    display: flex;
+    position: fixed;
+    bottom: 76px;
+    right: 16px;
+    z-index: 99;
+    align-items: center;
+    gap: 8px;
+    padding: 13px 18px;
+    border-radius: 999px;
+    background: linear-gradient(135deg, var(--sun), var(--peach));
+    color: white;
+    font-weight: 700;
+    font-size: 0.9rem;
+    box-shadow: 0 6px 24px rgba(242,131,107,0.45);
+    text-decoration: none;
+    border: 0;
+    cursor: pointer;
+    animation: popIn 0.4s 0.5s ease both;
+    transition: transform 200ms ease, box-shadow 200ms ease;
+  }
+
+  .mobile-fab:active {
+    transform: scale(0.93);
+    box-shadow: 0 3px 12px rgba(242,131,107,0.35);
+  }
+
+  /* ── Join page mobile ── */
+  .join-grid {
+    grid-template-columns: 1fr;
+    padding: 12px;
+    gap: 12px;
+  }
+
+  .join-copy h2 { font-size: 1.2rem; }
+
+  .two-up, .three-up { grid-template-columns: 1fr; }
+
+  .submission-form input,
+  .submission-form select,
+  .submission-form textarea {
+    padding: 13px 14px;
+    font-size: 1rem;
+    border-radius: 14px;
+  }
+
+  .submission-steps p { font-size: 0.88rem; }
 }
 
 .search-note {
@@ -1026,13 +1216,21 @@ h1 {
   .join-banner {
     flex-direction: column;
     align-items: flex-start;
-    padding: 20px;
+    padding: 18px 16px;
     border-radius: 20px;
   }
 
   .join-button {
     width: 100%;
     text-align: center;
+  }
+}
+
+/* Hide mobile-only elements on desktop */
+@media (min-width: 641px) {
+  .mobile-bottom-nav,
+  .mobile-fab {
+    display: none !important;
   }
 }
 

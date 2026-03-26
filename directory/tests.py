@@ -3,7 +3,7 @@ from django.urls import reverse
 from rest_framework.test import APITestCase
 from rest_framework.throttling import SimpleRateThrottle
 
-from .models import Category, Location, Rating, Worker, WorkerSubmission
+from .models import Category, Location, Rating, Worker, WorkerSubmission, WorkerUpdateRequest
 
 
 class DirectoryApiTests(APITestCase):
@@ -202,10 +202,13 @@ class DirectoryApiTests(APITestCase):
             format="json",
         )
 
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 202)
+        # Worker should NOT be directly updated — a pending update request is created
         self.unverified_worker.refresh_from_db()
-        self.assertEqual(self.unverified_worker.name, "Afsal Updated")
-        self.assertTrue(self.unverified_worker.availability_status)
+        self.assertEqual(self.unverified_worker.name, "Afsal")  # unchanged
+        req = WorkerUpdateRequest.objects.filter(worker=self.unverified_worker, status=WorkerUpdateRequest.STATUS_PENDING).first()
+        self.assertIsNotNone(req)
+        self.assertEqual(req.name, "Afsal Updated")
 
     def test_worker_self_patch_forbidden_wrong_phone(self):
         response = self.client.patch(
