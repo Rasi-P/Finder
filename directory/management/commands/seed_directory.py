@@ -43,9 +43,9 @@ CATEGORIES = [
     ("Scrap Collection", "സ്ക്രാപ്പ് ശേഖരണം", "https://img.icons8.com/fluency/96/recycling.png", "scrap pickup"),
     ("Babysitter", "ബേബിസിറ്റർ", "https://img.icons8.com/fluency/96/baby.png", "babysitting nanny"),
     ("Elder Care", "വയോധിക പരിചരണം", "https://img.icons8.com/fluency/96/elderly-person.png", "elder care"),
-    ("Car Mechanic", "കാർ മെക്കാനിക്", "https://img.icons8.com/fluency/96/car-repair.png", "car repair mechanic"),
-    ("Tile Fitting", "ടൈൽ ഫിറ്റിംഗ്", "https://img.icons8.com/fluency/96/tile.png", "tile fitting"),
-    ("Gypsum Board Worker", "ഗിപ്സം ബോർഡ് വർക്കർ", "https://img.icons8.com/fluency/96/drywall.png", "gypsum board false ceiling"),
+    ("Car Mechanic", "കാർ മെക്കാനിക്", "https://img.icons8.com/emoji/96/automobile.png", "car repair mechanic"),
+    ("Tile Fitting", "ടൈൽ ഫിറ്റിംഗ്", "https://img.icons8.com/emoji/96/hammer-and-wrench.png", "tile fitting"),
+    ("Gypsum Board Worker", "ഗിപ്സം ബോർഡ് വർക്കർ", "https://img.icons8.com/emoji/96/building-construction.png", "gypsum board false ceiling"),
 ]
 
 # (city_en, city_ml, area_en, area_ml, pincode)
