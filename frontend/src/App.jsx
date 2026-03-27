@@ -335,7 +335,7 @@ function MobileNav({ text, toggleLang }) {
   const isHome = location.pathname === "/";
   return (
     <nav className="mobile-bottom-nav">
-      <Link to="/" className={isHome ? "active" : ""}>
+      <Link to="/" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} className={isHome ? "active" : ""}>
         <span className="nav-icon">🏠</span>
         <span>Home</span>
       </Link>
