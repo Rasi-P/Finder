@@ -75,10 +75,20 @@ a {
 .panel,
 .results-panel,
 .stat-card {
-  background: var(--panel);
+  background: var(--panel-strong);
   border: 1px solid var(--line);
-  backdrop-filter: blur(16px);
   box-shadow: var(--shadow);
+}
+
+@media (min-width: 641px) {
+  .hero-copy,
+  .search-card,
+  .panel,
+  .results-panel,
+  .stat-card {
+    background: var(--panel);
+    backdrop-filter: blur(16px);
+  }
 }
 
 .hero-copy {
@@ -500,7 +510,6 @@ h1 {
   .hero-copy {
     border-radius: 20px;
     padding: 16px 16px 20px;
-    animation: fadeSlideUp 0.45s ease both;
   }
 
   .hero-copy::after { display: none; }
@@ -566,7 +575,6 @@ h1 {
     grid-template-columns: repeat(2, 1fr);
     gap: 8px;
     padding: 14px 16px 0;
-    animation: fadeSlideUp 0.45s 0.15s ease both;
   }
 
   .stat-card {
@@ -585,7 +593,6 @@ h1 {
     grid-template-columns: 1fr;
     gap: 12px;
     padding: 12px 16px 0;
-    animation: fadeSlideUp 0.45s 0.2s ease both;
   }
 
   .panel, .results-panel {
@@ -683,8 +690,6 @@ h1 {
     border-radius: 16px;
     padding: 12px 10px 10px;
     gap: 8px;
-    animation: popIn 0.3s ease both;
-    transition: transform 150ms ease, box-shadow 150ms ease;
   }
 
   .worker-card:active {
