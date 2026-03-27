@@ -655,8 +655,8 @@ function JoinPage({ lang, text, toggleLang }) {
         <div className="panel">
           <form className="submission-form" onSubmit={handleSubmit}>
             <div className="form-grid two-up">
-              <label><span>{lang === "ml" ? "പേര്‍ (ഇംഗ്ലീഷ്)" : "Name (English)"}</span><input value={submission.name} onChange={(e) => updateSubmission("name", e.target.value)} onBlur={async (e) => { if (e.target.value && !submission.name_ml) { const ml = await transliterate(e.target.value); if (ml) updateSubmission("name_ml", ml); } }} placeholder="Niyas" /></label>
-              <label><span>{lang === "ml" ? "പേര്‍ (മലയാളം)" : "പേര്‍ (മലയാളം)"}</span><input value={submission.name_ml} onChange={(e) => updateSubmission("name_ml", e.target.value)} onBlur={async (e) => { if (e.target.value && !submission.name) { updateSubmission("name", e.target.value); } }} placeholder="നിയാസ്" /></label>
+              <label><span>{lang === "ml" ? "പേര്‍ (ഇംഗ്ലീഷ്)" : "Name (English)"}</span><input value={submission.name} onChange={(e) => updateSubmission("name", e.target.value)} onBlur={async (e) => { if (e.target.value && !submission.name_ml) { const ml = await transliterate(e.target.value); if (ml) updateSubmission("name_ml", ml); } }} placeholder="Your name" /></label>
+              <label><span>{lang === "ml" ? "പേര്‍ (മലയാളം)" : "പേര്‍ (മലയാളം)"}</span><input value={submission.name_ml} onChange={(e) => updateSubmission("name_ml", e.target.value)} onBlur={async (e) => { if (e.target.value && !submission.name) { updateSubmission("name", e.target.value); } }} placeholder="നിങ്ങളുടെ പേര്" /></label>
             </div>
             <label><span>{text.submissionPhone}</span><input required value={submission.phone_number} onChange={(e) => updateSubmission("phone_number", e.target.value)} /></label>
             <label><span>{text.submissionCategory}</span><select required value={submission.category} onChange={(e) => updateSubmission("category", e.target.value)}><option value="">{text.selectCategory}</option>{categories.map((c) => <option key={c.id} value={c.id}>{lang === "ml" && c.name_ml ? c.name_ml : c.name}</option>)}</select></label>
