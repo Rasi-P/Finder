@@ -441,6 +441,7 @@ function HomePage({
         <Link to="/join" className="join-button">{text.joinButton}</Link>
       </section>
 
+      <Link to="/join" className="mobile-fab">➕ Register as a Worker</Link>
       <MobileNav text={text} toggleLang={toggleLang} />
 
       <section className="results-panel" id="available-workers">
