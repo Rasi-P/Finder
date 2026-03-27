@@ -1274,3 +1274,9 @@ h1 {
 .lang-toggle:hover {
   background: rgba(255, 182, 73, 0.28);
 }
+
+@media (max-width: 640px) {
+  .lang-toggle {
+    display: none;
+  }
+}
