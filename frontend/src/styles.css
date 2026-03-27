@@ -716,9 +716,19 @@ h1 {
   }
 
   .verified-chip, .pending-chip {
-    font-size: 0.65rem;
-    padding: 3px 6px;
+    font-size: 0;
+    padding: 6px 8px;
     white-space: nowrap;
+  }
+
+  .verified-chip::after {
+    content: "✓";
+    font-size: 0.72rem;
+  }
+
+  .pending-chip::after {
+    content: "…";
+    font-size: 0.72rem;
   }
 
   .meta-row { font-size: 0.72rem; }
@@ -726,8 +736,8 @@ h1 {
   .action-row { gap: 8px; }
 
   .action-button {
-    padding: 10px 6px;
-    font-size: 0.82rem;
+    padding: 10px 4px;
+    font-size: 0.75rem;
     border-radius: 12px;
     min-height: 40px;
   }
