@@ -1227,10 +1227,18 @@ h1 {
 }
 
 /* Hide mobile-only elements on desktop */
-@media (min-width: 641px) {
-  .mobile-bottom-nav,
+.mobile-bottom-nav,
+.mobile-fab {
+  display: none;
+}
+
+@media (max-width: 640px) {
+  .mobile-bottom-nav {
+    display: flex;
+  }
+
   .mobile-fab {
-    display: none !important;
+    display: flex;
   }
 }
 
