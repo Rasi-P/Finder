@@ -372,7 +372,7 @@ function HomePage({
           <p>{text.subtitle}</p>
         </div>
         <div className="search-card">
-          <label><span>{text.searchLabel}</span><input value={filters.search} onChange={(e) => updateFilter("search", e.target.value)} placeholder={lang === "ml" ? "പ്ലംബർ, ക്ലീനർ, നിയാസ്..." : "Plumber, cleaner, Niyas..."} /></label>
+          <label><span>{text.searchLabel}</span><input value={filters.search} onChange={(e) => updateFilter("search", e.target.value)} placeholder={lang === "ml" ? "പ്ലംബർ, ക്ലീനർ, പേര്..." : "Plumber, cleaner, Name..."} /></label>
           <div className="location-autocomplete">
             <label>
               <span>{text.pincodeLabel}</span>
