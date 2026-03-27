@@ -700,8 +700,20 @@ h1 {
   }
 
   .worker-topline { align-items: flex-start; }
-  .worker-topline h3 { font-size: 0.88rem; margin-bottom: 2px; }
-  .worker-topline p  { font-size: 0.72rem; }
+  .worker-topline h3 {
+    font-size: 0.88rem;
+    margin-bottom: 2px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .worker-topline p {
+    font-size: 0.72rem;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
 
   .verified-chip, .pending-chip {
     font-size: 0.65rem;
