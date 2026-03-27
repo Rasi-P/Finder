@@ -31,6 +31,18 @@ CATEGORIES = [
     ("Event Decorator", "ഇവന്റ് ഡെക്കറേറ്റർ", "https://img.icons8.com/fluency/96/confetti.png", "event decorator decoration"),
     ("Photographer", "ഫോട്ടോഗ്രാഫർ", "https://img.icons8.com/fluency/96/camera.png", "photographer photography"),
     ("Gas Repair", "ഗ്യാസ് റിപ്പയർ", "https://img.icons8.com/emoji/96/fire.png", "gas repair stove"),
+    ("Grass Cutting", "പുല്ല് വെട്ടൽ", "https://img.icons8.com/fluency/96/lawn-mower.png", "grass cutting garden"),
+    ("Coconut Tree Climber", "തേങ്ങ കയറുന്നവൻ", "https://img.icons8.com/fluency/96/palm-tree.png", "coconut tree climbing"),
+    ("Tree Cutter", "മരം വെട്ടൽ", "https://img.icons8.com/fluency/96/tree.png", "tree cutting"),
+    ("Water Tank Cleaning", "വെള്ള ടാങ്ക് ക്ലീനിംഗ്", "https://img.icons8.com/fluency/96/water.png", "tank cleaning"),
+    ("Septic Tank Cleaning", "സെപ്റ്റിക് ടാങ്ക് ക്ലീനിംഗ്", "https://img.icons8.com/fluency/96/sewer.png", "septic cleaning"),
+    ("Well Cleaning", "കിണർ ശുചീകരണം", "https://img.icons8.com/fluency/96/well.png", "well cleaning"),
+    ("Bike Mechanic", "ബൈക്ക് മെക്കാനിക്", "https://img.icons8.com/fluency/96/motorcycle.png", "bike repair"),
+    ("Pump Repair", "വാട്ടർ പമ്പ് റിപ്പയർ", "https://img.icons8.com/fluency/96/water-pump.png", "pump repair"),
+    ("House Shifting", "വീട് മാറൽ", "https://img.icons8.com/fluency/96/move.png", "house shifting"),
+    ("Scrap Collection", "സ്ക്രാപ്പ് ശേഖരണം", "https://img.icons8.com/fluency/96/recycling.png", "scrap pickup"),
+    ("Babysitter", "ബേബിസിറ്റർ", "https://img.icons8.com/fluency/96/baby.png", "babysitting nanny"),
+    ("Elder Care", "വയോധിക പരിചരണം", "https://img.icons8.com/fluency/96/elderly-person.png", "elder care"),
 ]
 
 # (city_en, city_ml, area_en, area_ml, pincode)
