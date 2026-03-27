@@ -333,7 +333,6 @@ function App() {
 function MobileNav({ text, toggleLang }) {
   const location = useLocation();
   const isHome = location.pathname === "/";
-  const isJoin = location.pathname === "/join";
   return (
     <nav className="mobile-bottom-nav">
       <Link to="/" className={isHome ? "active" : ""}>
@@ -344,10 +343,14 @@ function MobileNav({ text, toggleLang }) {
         <span className="nav-icon">🌐</span>
         <span>{text.langToggle}</span>
       </button>
-      <Link to="/join" className={isJoin ? "active" : ""}>
-        <span className="nav-icon">➕</span>
-        <span>Register</span>
-      </Link>
+      <a href="#popular-services">
+        <span className="nav-icon">🔧</span>
+        <span>Services</span>
+      </a>
+      <a href="#available-workers">
+        <span className="nav-icon">👷</span>
+        <span>Workers</span>
+      </a>
     </nav>
   );
 }
@@ -403,7 +406,7 @@ function HomePage({
         <StatCard label={text.statsVerified} value={homeData.stats.verified_workers} accent="ink" />
       </section>
 
-      <section className="content-grid">
+      <section className="content-grid" id="popular-services">
         <div className="panel">
           <div className="section-heading"><div><h2>{text.categoriesTitle}</h2><p>{text.categoriesHint}</p></div></div>
           <div className="category-grid">
@@ -438,10 +441,9 @@ function HomePage({
         <Link to="/join" className="join-button">{text.joinButton}</Link>
       </section>
 
-      <Link to="/join" className="mobile-fab">➕ {text.joinButton.replace(" →", "")}</Link>
       <MobileNav text={text} toggleLang={toggleLang} />
 
-      <section className="results-panel">
+      <section className="results-panel" id="available-workers">
         <div className="section-heading"><div><h2>{text.resultsTitle}</h2><p>{text.resultsHint}</p></div></div>
         {homeState.loading || workerState.loading ? <p className="state-copy">{text.loading}</p> : null}
         {homeState.error || workerState.error ? <p className="state-copy error">{homeState.error || workerState.error}</p> : null}
