@@ -39,11 +39,21 @@ If needed, copy `.env.example` to `.env` and change `VITE_API_BASE_URL`.
 
 ## Worker Self-Submission
 
-Workers can now submit their own details from the frontend form.
+Workers can submit their own details from the frontend form at `/join`.
 
 - Submissions are saved as pending records.
-- Review them in Django Admin under `Worker submissions`.
-- Use the admin action to approve selected submissions and create live worker listings.
+- An unverified worker listing is created immediately so they appear in the directory.
+- Review submissions in Django Admin under `Worker submissions`.
+- Use the **Approve** action to verify the listing.
+- Workers can update or delete their own listing from `/workers/:id` using their phone number as proof of ownership.
+- Update requests go through admin approval before taking effect.
+
+## Bilingual Support (English + Malayalam)
+
+- All categories, locations, and worker names support English and Malayalam fields.
+- The UI has a language toggle (EN / ML) on every page.
+- On the registration form, typing an English name and tabbing out auto-fills the Malayalam field via Google Input Tools transliteration.
+- Typing Malayalam first copies it into the English field (the backend detects Malayalam script and handles it correctly).
 
 ## Verification
 
