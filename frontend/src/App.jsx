@@ -1051,11 +1051,21 @@ function NearbyLocationsPanel({ lang, text, updateFilter, defaultLocations }) {
   const [error, setError] = useState("");
 
   async function loadNearby(pincode) {
-    if (!pincode || pincode.length < 3) return;
-    const prefix = pincode.slice(0, 3);
+    if (!pincode || pincode.length < 6) return;
     try {
-      const data = await requestJson("/locations/", { params: { q: prefix } });
-      setNearby((data.results ?? data).slice(0, 6));
+      const res = await fetch(`https://api.postalpincode.in/pincode/${pincode}`);
+      const data = await res.json();
+      if (data[0]?.Status === "Success") {
+        const offices = data[0].PostOffice;
+        const city = offices[0]?.District || offices[0]?.Division || "";
+        const unique = [...new Map(offices.map((o) => [o.Pincode, o])).values()];
+        setNearby(unique.slice(0, 8).map((o) => ({
+          id: o.Pincode,
+          pincode: o.Pincode,
+          display_name: `${o.Name}, ${city}`,
+          display_name_ml: "",
+        })));
+      }
     } catch {}
   }
 
