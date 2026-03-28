@@ -24,6 +24,11 @@ const translations = {
     categoriesHint: "Tap a category to narrow the list instantly.",
     locationsTitle: "Nearby areas",
     locationsHint: "Use a familiar neighbourhood or pincode to search.",
+    useMyLocation: "Use my location",
+    locating: "Locating...",
+    currentLocation: "Current location",
+    nearbyAreas: "Nearby areas",
+    locationError: "Could not detect location.",
     joinBanner: "Are you a worker?",
     joinBannerSub: "List your service for free. Get discovered by people near you.",
     joinButton: "Register as a Worker →",
@@ -104,6 +109,11 @@ const translations = {
     categoriesHint: "ഒരു വിഭാഗം തിരഞ്ഞെടുത്ത് ലിസ്റ്റ് ഉടൻ ചുരുക്കൂ.",
     locationsTitle: "അടുത്തുള്ള പ്രദേശങ്ങൾ",
     locationsHint: "പരിചിതമായ നാടോ പിൻകോഡോ ഉപയോഗിച്ച് തിരയൂ.",
+    useMyLocation: "എന്റെ സ്ഥാനം ഉപയോഗിക്കൂ",
+    locating: "കണ്ടെത്തുന്നു...",
+    currentLocation: "നിലവിലെ സ്ഥാനം",
+    nearbyAreas: "അടുത്തുള്ള പ്രദേശങ്ങൾ",
+    locationError: "സ്ഥാനം കണ്ടെത്താൻ കഴിഞ്ഞില്ല.",
     joinBanner: "നിങ്ങൾ ഒരു തൊഴിലാളിയാണോ?",
     joinBannerSub: "സൗജന്യമായി ലിസ്റ്റ് ചെയ്യൂ. അടുത്തുള്ളവർ നിങ്ങളെ കണ്ടെത്തട്ടെ.",
     joinButton: "തൊഴിലാളിയായി രജിസ്റ്റർ ചെയ്യൂ →",
@@ -420,17 +430,7 @@ function HomePage({
             ))}
           </div>
         </div>
-        <div className="panel">
-          <div className="section-heading"><div><h2>{text.locationsTitle}</h2><p>{text.locationsHint}</p></div></div>
-          <div className="location-list">
-            {homeData.locations.map((location) => (
-              <button key={location.id} className="location-card" onClick={() => updateFilter("pincode", location.pincode)} type="button">
-                <span>{lang === "ml" ? (location.display_name_ml || location.display_name) : location.display_name}</span>
-                <strong>{location.pincode}</strong>
-              </button>
-            ))}
-          </div>
-        </div>
+        <NearbyLocationsPanel lang={lang} text={text} updateFilter={updateFilter} defaultLocations={homeData.locations} />
       </section>
 
       <section className="join-banner">
@@ -1010,6 +1010,94 @@ function WorkerDetailPage({ lang, text, toggleLang }) {
         </div>
       </div>
     </main>
+  );
+}
+
+async function reverseGeocode(lat, lng) {
+  try {
+    const res = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`,
+      { headers: { "Accept-Language": "en" } }
+    );
+    const data = await res.json();
+    const addr = data.address || {};
+    const area = addr.suburb || addr.neighbourhood || addr.village || addr.town || addr.city_district || "";
+    const city = addr.city || addr.town || addr.county || "";
+    const pincode = addr.postcode || "";
+    return { area, city, pincode };
+  } catch {
+    return null;
+  }
+}
+
+function NearbyLocationsPanel({ lang, text, updateFilter, defaultLocations }) {
+  const [current, setCurrent] = useState(null); // { area, city, pincode }
+  const [nearby, setNearby] = useState([]);
+  const [locating, setLocating] = useState(false);
+  const [error, setError] = useState("");
+
+  async function loadNearby(pincode) {
+    if (!pincode || pincode.length < 3) return;
+    const prefix = pincode.slice(0, 3);
+    try {
+      const data = await requestJson("/locations/", { params: { q: prefix } });
+      setNearby((data.results ?? data).slice(0, 6));
+    } catch {}
+  }
+
+  async function handleUseLocation() {
+    if (!navigator.geolocation) { setError(text.locationError); return; }
+    setLocating(true);
+    setError("");
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const result = await reverseGeocode(pos.coords.latitude, pos.coords.longitude);
+        setLocating(false);
+        if (!result || !result.pincode) { setError(text.locationError); return; }
+        setCurrent(result);
+        updateFilter("pincode", result.pincode);
+        await loadNearby(result.pincode);
+      },
+      () => { setLocating(false); setError(text.locationError); }
+    );
+  }
+
+  const showDefault = !current && nearby.length === 0;
+
+  return (
+    <div className="panel">
+      <div className="section-heading">
+        <div><h2>{text.locationsTitle}</h2><p>{text.locationsHint}</p></div>
+      </div>
+      <button
+        className={`location-btn${locating ? " locating" : ""}`}
+        type="button"
+        onClick={handleUseLocation}
+        disabled={locating}
+      >
+        <span>📍</span>
+        <span>{locating ? text.locating : text.useMyLocation}</span>
+      </button>
+      {error ? <p className="state-copy error" style={{ marginTop: 8 }}>{error}</p> : null}
+      {current ? (
+        <div className="current-location-card">
+          <span className="current-location-label">{text.currentLocation}</span>
+          <strong>{current.area}{current.city ? `, ${current.city}` : ""}</strong>
+          <span className="current-pincode">{current.pincode}</span>
+        </div>
+      ) : null}
+      {(current || nearby.length > 0) ? (
+        <p className="nearby-label">{text.nearbyAreas}</p>
+      ) : null}
+      <div className="location-list">
+        {(showDefault ? defaultLocations : nearby).map((location) => (
+          <button key={location.id ?? location.pincode} className="location-card" onClick={() => updateFilter("pincode", location.pincode)} type="button">
+            <span>{lang === "ml" ? (location.display_name_ml || location.display_name) : location.display_name}</span>
+            <strong>{location.pincode}</strong>
+          </button>
+        ))}
+      </div>
+    </div>
   );
 }
 

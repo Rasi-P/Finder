@@ -373,6 +373,68 @@ h1 {
   color: var(--mint);
 }
 
+.location-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 12px 16px;
+  border-radius: 16px;
+  background: rgba(78, 157, 131, 0.1);
+  border: 1px solid rgba(78, 157, 131, 0.28);
+  color: var(--mint);
+  font-weight: 600;
+  margin-bottom: 12px;
+  transition: background-color 180ms ease;
+}
+
+.location-btn:hover {
+  background: rgba(78, 157, 131, 0.18);
+}
+
+.location-btn.locating {
+  opacity: 0.7;
+  cursor: wait;
+}
+
+.current-location-card {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: rgba(78, 157, 131, 0.08);
+  border: 1px solid rgba(78, 157, 131, 0.2);
+  margin-bottom: 12px;
+}
+
+.current-location-label {
+  font-size: 0.78rem;
+  color: var(--mint);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.current-location-card strong {
+  font-size: 1rem;
+  color: var(--ink);
+}
+
+.current-pincode {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.nearby-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 0 0 8px;
+}
+
 .state-copy {
   color: var(--muted);
   padding: 8px 0 18px;
