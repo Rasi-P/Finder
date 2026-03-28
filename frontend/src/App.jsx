@@ -1023,7 +1023,21 @@ async function reverseGeocode(lat, lng) {
     const addr = data.address || {};
     const area = addr.suburb || addr.neighbourhood || addr.village || addr.town || addr.city_district || "";
     const city = addr.city || addr.town || addr.county || "";
-    const pincode = addr.postcode || "";
+    // Try to get accurate pincode from India Post using the area name
+    let pincode = addr.postcode || "";
+    if (area) {
+      try {
+        const ipRes = await fetch(`https://api.postalpincode.in/postoffice/${encodeURIComponent(area)}`);
+        const ipData = await ipRes.json();
+        if (ipData[0]?.Status === "Success") {
+          const match = ipData[0].PostOffice.find((o) =>
+            o.District?.toLowerCase() === city.toLowerCase() ||
+            o.Division?.toLowerCase() === city.toLowerCase()
+          ) || ipData[0].PostOffice[0];
+          if (match?.Pincode) pincode = match.Pincode;
+        }
+      } catch {}
+    }
     return { area, city, pincode };
   } catch {
     return null;
