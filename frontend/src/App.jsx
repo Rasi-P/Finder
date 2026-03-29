@@ -6,6 +6,22 @@ const WORKER_PHONE_STORAGE_KEY = "finder_worker_phone";
 
 const translations = {
   en: {
+    helpTitle: "How it works",
+    helpUserTitle: "👤 Finding a worker",
+    helpUserSteps: [
+      "Search by service (Plumber, Electrician...) or worker name.",
+      "Enter your pincode or tap 'Use my location'.",
+      "Filter by Verified or Available now.",
+      "Tap Call or WhatsApp to contact directly — no login needed.",
+    ],
+    helpWorkerTitle: "🔧 Getting listed as a worker",
+    helpWorkerSteps: [
+      "Tap 'Register as a Worker'.",
+      "Fill in your name, phone, service category and location.",
+      "Submit — your listing goes live immediately.",
+      "After admin review you get a Verified badge.",
+    ],
+    helpClose: "Got it!",
     brand: "Finder",
     badge: "Hyper-local help in minutes",
     title: "Find trusted workers near you.",
@@ -91,6 +107,22 @@ const translations = {
     cancelEdit: "Close",
   },
   ml: {
+    helpTitle: "എങ്ങനെ ഉപയോഗിക്കാം",
+    helpUserTitle: "👤 സേവനം തേടുന്നവർക്ക്",
+    helpUserSteps: [
+      "സേവനം അല്ലെങ്കിൽ തൊഴിലാളിയുടെ പേര് തിരയൂ.",
+      "പിൻകോഡ് നൽകൂ അല്ലെങ്കിൽ 'എന്റെ സ്ഥാനം ഉപയോഗിക്കൂ' ടാപ്പ് ചെയ്യൂ.",
+      "സ്ഥിരീകരിച്ചത് / ലഭ്യം ഫിൽട്ടർ ഉപയോഗിക്കൂ.",
+      "Call അല്ലെങ്കിൽ WhatsApp ടാപ്പ് ചെയ്ത് നേരിട്ട് ബന്ധപ്പെടൂ.",
+    ],
+    helpWorkerTitle: "🔧 തൊഴിലാളികൾക്ക്",
+    helpWorkerSteps: [
+      "'തൊഴിലാളിയായി രജിസ്റ്റർ ചെയ്യൂ' ടാപ്പ് ചെയ്യൂ.",
+      "പേര്, ഫോൺ, സേവനം, സ്ഥലം നൽകൂ.",
+      "സമർപ്പിക്കൂ — ലിസ്റ്റിംഗ് ഉടൻ ലൈവ് ആകും.",
+      "അഡ്മിൻ അവലോകനത്തിന് ശേഷം 'സ്ഥിരീകരിച്ചത്' ബാഡ്ജ് ലഭിക്കും.",
+    ],
+    helpClose: "മനസ്സിലായി!",
     brand: "Finder",
     badge: "അടുത്തുള്ള സഹായം മിനിറ്റുകൾക്കുള്ളിൽ",
     title: "വിശ്വസ്തരായ തൊഴിലാളികളെ കണ്ടെത്തൂ.",
@@ -369,8 +401,20 @@ function HomePage({
   lang, text, toggleLang, homeData, workers, pagination, filters, updateFilter, homeState, workerState,
   setFilters, locationSuggestions, setLocationSuggestions,
 }) {
+  const [helpOpen, setHelpOpen] = useState(false);
+  const [helpVisible, setHelpVisible] = useState(true);
+
+  useEffect(() => {
+    function onScroll() {
+      setHelpVisible(window.scrollY < 80);
+    }
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
   return (
     <main className="app-shell">
+      {helpOpen && <HelpDesk text={text} onClose={() => setHelpOpen(false)} />}
       <section className="hero-panel">
         <div className="hero-copy">
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
@@ -442,6 +486,7 @@ function HomePage({
       </section>
 
       <Link to="/join" className="mobile-fab">➕ Register as a Worker</Link>
+      {helpVisible && <button type="button" className="help-fab" onClick={() => setHelpOpen(true)}>?</button>}
       <MobileNav text={text} toggleLang={toggleLang} />
 
       <section className="results-panel" id="available-workers">
@@ -1131,6 +1176,32 @@ function NearbyLocationsPanel({ lang, text, updateFilter, defaultLocations }) {
             <strong>{location.pincode}</strong>
           </button>
         ))}
+      </div>
+    </div>
+  );
+}
+
+function HelpDesk({ text, onClose }) {
+  return (
+    <div className="helpdesk-overlay" onClick={onClose}>
+      <div className="helpdesk-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="helpdesk-header">
+          <h2>{text.helpTitle}</h2>
+          <button type="button" onClick={onClose} className="helpdesk-close">✕</button>
+        </div>
+        <div className="helpdesk-section">
+          <h3>{text.helpUserTitle}</h3>
+          <ol>
+            {text.helpUserSteps.map((step, i) => <li key={i}>{step}</li>)}
+          </ol>
+        </div>
+        <div className="helpdesk-section">
+          <h3>{text.helpWorkerTitle}</h3>
+          <ol>
+            {text.helpWorkerSteps.map((step, i) => <li key={i}>{step}</li>)}
+          </ol>
+        </div>
+        <button type="button" className="submit-button" onClick={onClose}>{text.helpClose}</button>
       </div>
     </div>
   );
