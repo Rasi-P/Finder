@@ -1031,23 +1031,8 @@ async function reverseGeocode(lat, lng) {
       addr.city_district ||
       "";
     const city = addr.city || addr.town || addr.county || "";
-    let pincode = addr.postcode || "";
-    // Try India Post lookup with the specific locality name first, then suburb
-    const candidates = [area, addr.suburb, addr.neighbourhood].filter(Boolean);
-    for (const name of candidates) {
-      if (pincode) break;
-      try {
-        const ipRes = await fetch(`https://api.postalpincode.in/postoffice/${encodeURIComponent(name)}`);
-        const ipData = await ipRes.json();
-        if (ipData[0]?.Status === "Success") {
-          const match = ipData[0].PostOffice.find((o) =>
-            o.District?.toLowerCase() === city.toLowerCase() ||
-            o.Division?.toLowerCase() === city.toLowerCase()
-          ) || ipData[0].PostOffice[0];
-          if (match?.Pincode) pincode = match.Pincode;
-        }
-      } catch {}
-    }
+    // Use Nominatim's postcode directly — it's accurate for GPS coordinates
+    const pincode = addr.postcode || "";
     return { area, city, pincode };
   } catch {
     return null;
