@@ -11,6 +11,7 @@ const translations = {
     helpUserSteps: [
       "Search by service (Plumber, Electrician...) or worker name.",
       "Enter your pincode or tap 'Use my location'.",
+      "Tap a nearby area to filter workers in that zone — the selected area will highlight.",
       "Filter by Verified or Available now.",
       "Tap Call or WhatsApp to contact directly — no login needed.",
     ],
@@ -112,6 +113,7 @@ const translations = {
     helpUserSteps: [
       "സേവനം അല്ലെങ്കിൽ തൊഴിലാളിയുടെ പേര് തിരയൂ.",
       "പിൻകോഡ് നൽകൂ അല്ലെങ്കിൽ 'എന്റെ സ്ഥാനം ഉപയോഗിക്കൂ' ടാപ്പ് ചെയ്യൂ.",
+      "അടുത്തുള്ള പ്രദേശം ടാപ്പ് ചെയ്ത് ആ പ്രദേശത്തെ തൊഴിലാളികൾ ഫിൽടർ ചെയ്യൂ — തിരഞ്ഞെടുത്ത പ്രദേശം ഹൈലൈറ് ആകും.",
       "സ്ഥിരീകരിച്ചത് / ലഭ്യം ഫിൽട്ടർ ഉപയോഗിക്കൂ.",
       "Call അല്ലെങ്കിൽ WhatsApp ടാപ്പ് ചെയ്ത് നേരിട്ട് ബന്ധപ്പെടൂ.",
     ],
@@ -474,7 +476,7 @@ function HomePage({
             ))}
           </div>
         </div>
-        <NearbyLocationsPanel lang={lang} text={text} updateFilter={updateFilter} defaultLocations={homeData.locations} />
+        <NearbyLocationsPanel lang={lang} text={text} updateFilter={updateFilter} defaultLocations={homeData.locations} filters={filters} />
       </section>
 
       <section className="join-banner">
@@ -1089,7 +1091,7 @@ async function reverseGeocode(lat, lng) {
   }
 }
 
-function NearbyLocationsPanel({ lang, text, updateFilter, defaultLocations }) {
+function NearbyLocationsPanel({ lang, text, updateFilter, defaultLocations, filters }) {
   const [current, setCurrent] = useState(null); // { area, city, pincode }
   const [nearby, setNearby] = useState([]);
   const [locating, setLocating] = useState(false);
@@ -1171,7 +1173,12 @@ function NearbyLocationsPanel({ lang, text, updateFilter, defaultLocations }) {
       ) : null}
       <div className="location-list">
         {(showDefault ? defaultLocations : nearby).map((location) => (
-          <button key={location.id ?? location.pincode} className="location-card" onClick={() => updateFilter("pincode", location.pincode)} type="button">
+          <button
+            key={location.id ?? location.pincode}
+            className={`location-card${filters.pincode === location.pincode ? " active" : ""}`}
+            onClick={() => updateFilter("pincode", location.pincode)}
+            type="button"
+          >
             <span>{lang === "ml" ? (location.display_name_ml || location.display_name) : location.display_name}</span>
             <strong>{location.pincode}</strong>
           </button>

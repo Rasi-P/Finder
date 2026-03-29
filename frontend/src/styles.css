@@ -373,6 +373,12 @@ h1 {
   color: var(--mint);
 }
 
+.location-card.active {
+  background: rgba(78, 157, 131, 0.14);
+  border-color: rgba(78, 157, 131, 0.4);
+  color: var(--mint);
+}
+
 .location-btn {
   display: flex;
   align-items: center;
@@ -1229,15 +1235,15 @@ h1 {
 }
 
 .join-button {
-  display: inline-block;
-  padding: 14px 24px;
-  border-radius: 18px;
-  background: linear-gradient(135deg, #2d3648, #44536d);
-  color: white;
-  font-weight: 700;
-  white-space: nowrap;
-  transition: opacity 180ms ease;
-}
+    display: inline-block;
+    padding: 14px 24px;
+    border-radius: 18px;
+    background: linear-gradient(135deg, #2d3648, #44536d);
+    color: white;
+    font-weight: 700;
+    white-space: nowrap;
+    transition: opacity 180ms ease;
+  }
 
 .join-button:hover {
   opacity: 0.88;
@@ -1414,7 +1420,7 @@ h1 {
   padding: 24px 20px 32px;
   width: 100%;
   max-width: 480px;
-  max-height: 85vh;
+  max-height: 92vh;
   overflow-y: auto;
   display: grid;
   gap: 20px;
@@ -1424,7 +1430,7 @@ h1 {
 @media (min-width: 641px) {
   .helpdesk-modal {
     border-radius: 28px;
-    max-height: 80vh;
+    max-height: 88vh;
   }
 }
 
