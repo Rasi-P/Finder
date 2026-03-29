@@ -1058,11 +1058,22 @@ function NearbyLocationsPanel({ lang, text, updateFilter, defaultLocations }) {
       if (data[0]?.Status === "Success") {
         const offices = data[0].PostOffice;
         const city = offices[0]?.District || offices[0]?.Division || "";
-        const unique = [...new Map(offices.map((o) => [o.Pincode, o])).values()];
+        let allOffices = [...offices];
+        // Fetch more areas from the same city/district
+        if (city) {
+          try {
+            const cityRes = await fetch(`https://api.postalpincode.in/postoffice/${encodeURIComponent(city)}`);
+            const cityData = await cityRes.json();
+            if (cityData[0]?.Status === "Success") {
+              allOffices = [...allOffices, ...cityData[0].PostOffice];
+            }
+          } catch {}
+        }
+        const unique = [...new Map(allOffices.map((o) => [o.Pincode, o])).values()];
         setNearby(unique.slice(0, 8).map((o) => ({
           id: o.Pincode,
           pincode: o.Pincode,
-          display_name: `${o.Name}, ${city}`,
+          display_name: `${o.Name}, ${city || o.District}`,
           display_name_ml: "",
         })));
       }
