@@ -974,7 +974,7 @@ h1 {
 .submission-form select,
 .submission-form textarea {
   width: 100%;
-  border: 1px solid transparent;
+  border: 1px solid var(--line);
   border-radius: 18px;
   padding: 16px 18px;
   background: var(--panel-strong);
