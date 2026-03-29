@@ -557,6 +557,9 @@ h1 {
 }
 
 @media (max-width: 640px) {
+  .content-grid > .panel { order: 2; }
+  .content-grid > div:last-child { order: 1; }
+
   /* ── Shell ── */
   .app-shell {
     padding: 0 0 90px;
