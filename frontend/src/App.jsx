@@ -1016,23 +1016,28 @@ function WorkerDetailPage({ lang, text, toggleLang }) {
 async function reverseGeocode(lat, lng) {
   try {
     const res = await fetch(
-      `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&zoom=16`,
+      `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`,
       { headers: { "Accept-Language": "en" } }
     );
     const data = await res.json();
     const addr = data.address || {};
-    // Prefer the most specific locality name available
-    const area =
-      addr.quarter ||
-      addr.neighbourhood ||
-      addr.suburb ||
-      addr.village ||
-      addr.town ||
-      addr.city_district ||
-      "";
+    const area = addr.suburb || addr.neighbourhood || addr.village || addr.town || addr.city_district || "";
     const city = addr.city || addr.town || addr.county || "";
-    // Use Nominatim's postcode directly — it's accurate for GPS coordinates
-    const pincode = addr.postcode || "";
+    // Try to get accurate pincode from India Post using the area name
+    let pincode = addr.postcode || "";
+    if (area) {
+      try {
+        const ipRes = await fetch(`https://api.postalpincode.in/postoffice/${encodeURIComponent(area)}`);
+        const ipData = await ipRes.json();
+        if (ipData[0]?.Status === "Success") {
+          const match = ipData[0].PostOffice.find((o) =>
+            o.District?.toLowerCase() === city.toLowerCase() ||
+            o.Division?.toLowerCase() === city.toLowerCase()
+          ) || ipData[0].PostOffice[0];
+          if (match?.Pincode) pincode = match.Pincode;
+        }
+      } catch {}
+    }
     return { area, city, pincode };
   } catch {
     return null;
@@ -1053,22 +1058,11 @@ function NearbyLocationsPanel({ lang, text, updateFilter, defaultLocations }) {
       if (data[0]?.Status === "Success") {
         const offices = data[0].PostOffice;
         const city = offices[0]?.District || offices[0]?.Division || "";
-        // Get all post offices in the same district for more nearby areas
-        let allOffices = offices;
-        if (city) {
-          try {
-            const cityRes = await fetch(`https://api.postalpincode.in/postoffice/${encodeURIComponent(city)}`);
-            const cityData = await cityRes.json();
-            if (cityData[0]?.Status === "Success") {
-              allOffices = [...offices, ...cityData[0].PostOffice];
-            }
-          } catch {}
-        }
-        const unique = [...new Map(allOffices.map((o) => [o.Pincode, o])).values()];
+        const unique = [...new Map(offices.map((o) => [o.Pincode, o])).values()];
         setNearby(unique.slice(0, 8).map((o) => ({
           id: o.Pincode,
           pincode: o.Pincode,
-          display_name: `${o.Name}, ${city || o.District}`,
+          display_name: `${o.Name}, ${city}`,
           display_name_ml: "",
         })));
       }
