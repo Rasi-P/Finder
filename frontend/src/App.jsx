@@ -1142,7 +1142,7 @@ function NearbyLocationsPanel({ lang, text, updateFilter, defaultLocations }) {
     );
   }
 
-  const showDefault = !current && nearby.length === 0;
+  const showDefault = false;
 
   return (
     <div className="panel">
