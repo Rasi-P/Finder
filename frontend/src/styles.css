@@ -1396,17 +1396,10 @@ h1 {
   z-index: 2000;
   background: rgba(42, 29, 20, 0.55);
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: center;
-  padding: 0;
+  padding: 20px;
   animation: fadeIn 0.2s ease;
-}
-
-@media (min-width: 641px) {
-  .helpdesk-overlay {
-    align-items: center;
-    padding: 20px;
-  }
 }
 
 @keyframes fadeIn {
@@ -1416,22 +1409,14 @@ h1 {
 
 .helpdesk-modal {
   background: var(--panel-strong);
-  border-radius: 28px 28px 0 0;
-  padding: 24px 20px 32px;
+  border-radius: 28px;
+  padding: 24px 20px 28px;
   width: 100%;
   max-width: 480px;
-  max-height: 92vh;
-  overflow-y: auto;
+  overflow-y: visible;
   display: grid;
-  gap: 20px;
+  gap: 16px;
   animation: slideUp 0.3s ease;
-}
-
-@media (min-width: 641px) {
-  .helpdesk-modal {
-    border-radius: 28px;
-    max-height: 88vh;
-  }
 }
 
 @keyframes slideUp {
@@ -1468,9 +1453,10 @@ h1 {
   margin: 0;
   padding-left: 20px;
   display: grid;
-  gap: 10px;
+  gap: 8px;
   color: var(--muted);
-  line-height: 1.6;
+  line-height: 1.5;
+  font-size: 0.88rem;
 }
 
 /* ── Field icons in search inputs ── */
@@ -1508,3 +1494,62 @@ h1 {
 .stat-card.mint .stat-bar-fill { background: var(--mint); }
 .stat-card.peach .stat-bar-fill { background: var(--peach); }
 .stat-card.ink  .stat-bar-fill { background: var(--ink-accent); }
+
+.find-workers-btn {
+  display: block;
+  text-align: center;
+  padding: 14px 18px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, var(--mint), #3a8a70);
+  color: white;
+  font-weight: 700;
+  font-size: 1rem;
+  transition: opacity 180ms ease, transform 180ms ease;
+}
+
+.find-workers-btn:hover {
+  opacity: 0.9;
+  transform: translateY(-2px);
+}
+
+.scroll-top-btn {
+  display: flex;
+  position: fixed;
+  bottom: 32px;
+  right: 32px;
+  z-index: 99;
+  width: 52px;
+  height: 52px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--sun), var(--peach));
+  color: white;
+  font-weight: 700;
+  font-size: 1.4rem;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 6px 24px rgba(242, 131, 107, 0.45);
+  border: 0;
+  cursor: pointer;
+  transition: transform 200ms ease, box-shadow 200ms ease;
+  animation: popIn 0.3s ease;
+}
+
+.scroll-top-btn:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 28px rgba(242, 131, 107, 0.5);
+}
+
+.scroll-top-btn:active {
+  transform: scale(0.93);
+}
+
+@media (max-width: 640px) {
+  .scroll-top-btn {
+    bottom: 76px;
+    left: 16px;
+    right: auto;
+    width: 46px;
+    height: 46px;
+    font-size: 1.1rem;
+  }
+}

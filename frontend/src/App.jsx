@@ -364,6 +364,11 @@ function App() {
     startTransition(() => {
       setFilters((current) => ({ ...current, [key]: value, ...(key !== "page" ? { page: 1 } : {}) }));
     });
+    if (key === "category") {
+      setTimeout(() => {
+        document.getElementById("available-workers")?.scrollIntoView({ behavior: "smooth" });
+      }, 100);
+    }
   }
 
   return (
@@ -406,10 +411,13 @@ function HomePage({
 }) {
   const [helpOpen, setHelpOpen] = useState(false);
   const [helpVisible, setHelpVisible] = useState(true);
+  const [showScrollTop, setShowScrollTop] = useState(false);
 
   useEffect(() => {
     function onScroll() {
-      setHelpVisible(window.scrollY < 80);
+      const scrolled = window.scrollY > 400;
+      setHelpVisible(!scrolled);
+      setShowScrollTop(scrolled);
     }
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
@@ -453,6 +461,7 @@ function HomePage({
           </div>
           <button className="ghost-button" onClick={() => setFilters({ category: "", pincode: "", search: "", verified: false, available: false })} type="button">{text.clearFilters}</button>
           <p className="search-note">{text.searchHint}</p>
+          <a href="#available-workers" className="find-workers-btn">{lang === "ml" ? "തൊഴിലാളികളെ കണ്ടെത്തൂ →" : "Find Workers →"}</a>
         </div>
       </section>
 
@@ -490,6 +499,9 @@ function HomePage({
 
       <Link to="/join" className="mobile-fab">➕ Register as a Worker</Link>
       {helpVisible && <button type="button" className="help-fab" onClick={() => setHelpOpen(true)}>?</button>}
+      {showScrollTop && (
+        <button type="button" className="scroll-top-btn" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}>↑</button>
+      )}
       <MobileNav text={text} toggleLang={toggleLang} />
 
       <section className="results-panel" id="available-workers">
