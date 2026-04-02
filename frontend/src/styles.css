@@ -215,7 +215,7 @@ h1 {
   width: 100%;
   border: 1px solid var(--line);
   border-radius: 18px;
-  padding: 16px 18px;
+  padding: 16px 18px 16px 40px;
   background: var(--panel-strong);
   color: var(--ink);
   outline: none;
@@ -618,7 +618,7 @@ h1 {
   }
 
   .search-card input {
-    padding: 13px 16px;
+    padding: 13px 16px 13px 40px;
     font-size: 1rem;
     border-radius: 14px;
   }
@@ -1472,3 +1472,39 @@ h1 {
   color: var(--muted);
   line-height: 1.6;
 }
+
+/* ── Field icons in search inputs ── */
+.field-wrap {
+  position: relative;
+}
+
+.field-icon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  pointer-events: none;
+  opacity: 0.45;
+  color: var(--muted);
+}
+
+/* ── Stat bar under each stat number ── */
+.stat-bar {
+  height: 3px;
+  border-radius: 999px;
+  background: var(--line);
+  overflow: hidden;
+}
+
+.stat-bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 1s ease;
+}
+
+.stat-card.sun  .stat-bar-fill { background: #d67d00; }
+.stat-card.mint .stat-bar-fill { background: var(--mint); }
+.stat-card.peach .stat-bar-fill { background: var(--peach); }
+.stat-card.ink  .stat-bar-fill { background: var(--ink-accent); }

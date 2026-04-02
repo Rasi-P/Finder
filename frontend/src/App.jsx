@@ -1,4 +1,5 @@
 import { startTransition, useCallback, useDeferredValue, useEffect, useState } from "react";
+import { Search, MapPin } from "lucide-react";
 import { Link, Route, Routes, useLocation, useNavigate, useParams } from "react-router-dom";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://127.0.0.1:8000/api";
@@ -428,11 +429,11 @@ function HomePage({
           <p>{text.subtitle}</p>
         </div>
         <div className="search-card">
-          <label><span>{text.searchLabel}</span><input value={filters.search} onChange={(e) => updateFilter("search", e.target.value)} placeholder={lang === "ml" ? "പ്ലംബർ, ക്ലീനർ, പേര്..." : "Plumber, cleaner, Name..."} /></label>
+          <label><span>{text.searchLabel}</span><div className="field-wrap"><span className="field-icon"><Search size={16} /></span><input value={filters.search} onChange={(e) => updateFilter("search", e.target.value)} placeholder={lang === "ml" ? "പ്ലംബർ, ക്ലീനർ, പേര്..." : "Plumber, cleaner, Name..."} /></div></label>
           <div className="location-autocomplete">
             <label>
               <span>{text.pincodeLabel}</span>
-              <input value={filters.pincode} onChange={(e) => updateFilter("pincode", e.target.value)} placeholder="673633" autoComplete="off" />
+              <div className="field-wrap"><span className="field-icon"><MapPin size={16} /></span><input value={filters.pincode} onChange={(e) => updateFilter("pincode", e.target.value)} placeholder="673633" autoComplete="off" /></div>
             </label>
             {locationSuggestions.length > 0 && (
               <ul className="suggestions-list">
@@ -1144,7 +1145,7 @@ function NearbyLocationsPanel({ lang, text, updateFilter, defaultLocations, filt
     );
   }
 
-  const showDefault = false;
+  const locationsToShow = nearby.length > 0 ? nearby : defaultLocations;
 
   return (
     <div className="panel">
@@ -1172,7 +1173,7 @@ function NearbyLocationsPanel({ lang, text, updateFilter, defaultLocations, filt
         <p className="nearby-label">{text.nearbyAreas}</p>
       ) : null}
       <div className="location-list">
-        {(showDefault ? defaultLocations : nearby).map((location) => (
+        {locationsToShow.map((location) => (
           <button
             key={location.id ?? location.pincode}
             className={`location-card${filters.pincode === location.pincode ? " active" : ""}`}
@@ -1215,7 +1216,13 @@ function HelpDesk({ text, onClose }) {
 }
 
 function StatCard({ label, value, accent }) {
-  return <article className={`stat-card ${accent}`}><span>{label}</span><strong>{value}</strong></article>;
+  return (
+    <article className={`stat-card ${accent}`}>
+      <span>{label}</span>
+      <strong>{value}</strong>
+      <div className="stat-bar"><div className="stat-bar-fill" style={{ width: `${Math.min(100, (value / 200) * 100)}%` }} /></div>
+    </article>
+  );
 }
 
 export default App;
